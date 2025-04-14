@@ -49,7 +49,7 @@ fun PlacesAutocompleteTextField(
                     placesManager.clearPredictions()
                 }
             },
-            label = { Text("搜索地点") },
+            label = { Text("Address") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
