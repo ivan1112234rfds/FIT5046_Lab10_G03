@@ -120,9 +120,6 @@ fun ActivityApp() {
             CreateActivityScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onActivityCreated = { newActivity ->
-                    // 在这里处理新活动的保存逻辑
-                    // 例如调用ViewModel的方法
-                    // activityViewModel.addActivity(newActivity)
                 }
             )
         }
