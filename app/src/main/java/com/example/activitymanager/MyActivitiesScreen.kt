@@ -1,6 +1,8 @@
 package com.example.activitymanager
 
-import androidx.compose.foundation.background
+
+
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,8 +34,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,10 +43,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.rememberNavController
+import com.example.assignmentcode.BottomNavigationBar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -56,6 +57,10 @@ import java.util.Locale
 fun MyActivitiesScreen(onActivityClick: (String) -> Unit, onCreateActivityClick: () -> Unit) {
     val activities = remember { createMockActivities() }
     var selectedTabIndex by remember { mutableStateOf(0) }
+    val tabs = listOf("Upcoming", "Past", "All")
+
+    val navController = rememberNavController()
+    var selectedTab by remember { mutableStateOf("Home") }
 
     val filteredActivities = when (selectedTabIndex) {
         0 -> activities.filter { it.date.after(Date()) } // Upcoming
@@ -63,17 +68,16 @@ fun MyActivitiesScreen(onActivityClick: (String) -> Unit, onCreateActivityClick:
         else -> activities // All
     }
 
+
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("My Activities") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+        bottomBar = {
+            BottomNavigationBar(
+                selectedTab = selectedTab,
+                onTabSelected = {selectedTab = it}
             )
         }, floatingActionButton = {
             FloatingActionButton(onClick = onCreateActivityClick) {
-                Icon(Icons.Default.Add, contentDescription = "创建活动")
+                Icon(Icons.Default.Add, contentDescription = "Create Activities")
             }
         }
     ) { paddingValues ->
@@ -81,22 +85,32 @@ fun MyActivitiesScreen(onActivityClick: (String) -> Unit, onCreateActivityClick:
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp)
         ) {
+            Text(
+                text = "My Activity",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
             // 选项卡
             TabRow(
-                selectedTabIndex = selectedTabIndex,
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary
+                selectedTabIndex = selectedTabIndex
             ) {
-                listOf("Upcoming", "Past", "All").forEachIndexed { index, title ->
+                tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTabIndex == index,
                         onClick = { selectedTabIndex = index },
-                        text = { Text(title) }
+                        text = {
+                            Text(
+                                text = title,
+                                color = if (selectedTabIndex == index) Color.Blue else Color.Gray
+                            )
+                        }
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(16.dp))
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(12.dp),
@@ -113,31 +127,42 @@ fun MyActivitiesScreen(onActivityClick: (String) -> Unit, onCreateActivityClick:
     }
 }
 
+
 @Composable
 fun ActivityItem(activity: Activity, onClick: () -> Unit) {
     val dateFormat = SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault())
 
+
+    val imageRes = when (activity.type) {
+        "Movie" -> R.drawable.movie
+        "Hiking" -> R.drawable.hiking
+        else -> R.drawable.pic1
+    }
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         onClick = onClick
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // 活动图片 (模拟)
             Box(
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(75.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFE0E5FF))
-            )
+            ) {
+                Image(
+                    painter = painterResource(id = imageRes),
+                    contentDescription = "Activity Image",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -145,51 +170,32 @@ fun ActivityItem(activity: Activity, onClick: () -> Unit) {
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = activity.title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
+                Text(text = activity.title, style = MaterialTheme.typography.titleMedium)
                 Text(
                     text = "by ${activity.organizer}",
-                    fontSize = 12.sp,
-                    color = Color.Gray
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // 评分和时长
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = Color(0xFFFFC107)
+                        contentDescription = "Rating",
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(16.dp)
                     )
-
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = activity.rating.toString(),
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(start = 2.dp, end = 8.dp)
-                    )
-
-                    Text(
-                        text = "• ${activity.duration}",
-                        fontSize = 12.sp,
+                        text = "" + activity.rating + " " + activity.duration,
+                        style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )
                 }
 
                 Text(
                     text = "${activity.participants} participants",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
             }

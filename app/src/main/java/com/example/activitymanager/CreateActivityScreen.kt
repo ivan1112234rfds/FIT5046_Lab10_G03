@@ -29,6 +29,7 @@ fun CreateActivityScreen(
     var time by remember { mutableStateOf("") }
     var duration by remember { mutableStateOf("") }
     var organizer by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("") }
     var participants by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf("0.0") }
     var longitude by remember { mutableStateOf("0.0") }
@@ -235,6 +236,7 @@ fun CreateActivityScreen(
                         location = location,
                         organizer = organizer,
                         rating = 0.0,
+                        type = type,
                         duration = duration,
                         participants = participants.toIntOrNull() ?: 0,
                         isFavorite = false,

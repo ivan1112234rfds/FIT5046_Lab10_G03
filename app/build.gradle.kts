@@ -11,6 +11,11 @@ dependencies {
     implementation("com.google.android.libraries.places:places:3.2.0")
     implementation ("com.squareup.okhttp3:okhttp:4.9.3")
     implementation ("com.squareup.okhttp3:okhttp-dnsoverhttps:4.9.3")
+
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation("com.google.accompanist:accompanist-appcompat-theme:0.28.0")
 }
 android {
     namespace = "com.example.activitymanager"
