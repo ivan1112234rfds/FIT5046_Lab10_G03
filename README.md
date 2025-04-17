@@ -25,8 +25,7 @@ Data Management: Firebase
 # Build Step
 # Clone the repository
 git clone https://github.com/ivan1112234rfds/FIT5046.git
-# Switch to working branch: xiran
-git checkout xiran
+
 
 # How to Use Temporary Navigation
 # In the current version, you can navigate to various feature pages as follows:
