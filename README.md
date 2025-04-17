@@ -26,7 +26,6 @@ Data Management: Firebase
 # Clone the repository
 git clone https://github.com/ivan1112234rfds/FIT5046_Lab10_G03.git
 
-
 # How to Use Temporary Navigation
 # In the current version, you can navigate to various feature pages as follows:
 
