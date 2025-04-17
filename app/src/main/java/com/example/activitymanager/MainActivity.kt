@@ -35,6 +35,8 @@ import com.example.activitymanager.mapper.Activity
 import com.example.assignmentcode.ui.theme.AssignmentCodeTheme
 import com.example.fit5046.LoginScreen
 import com.example.fit5046.RegisterScreen
+import com.example.fit5046assignment.HomeScreen
+import com.example.fit5046assignment.ProfileScreen
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.Places
 
@@ -90,7 +92,7 @@ fun ActivityApp() {
             navController.navigate("activity_details/$activityId")
         },) }
         composable("home") {
-            HomeScreen(navController)
+            HomeScreens(navController)
         }
         composable("login") {
             LoginScreen(navController)
@@ -108,6 +110,13 @@ fun ActivityApp() {
         composable("forgot_password") {
             ForgotPasswordScreen(navController)
         }
+        composable("HomeScreen") {
+            HomeScreen(navController)
+        }
+        composable("Profile") {
+            ProfileScreen(navController)
+        }
+
     }
 }
 
