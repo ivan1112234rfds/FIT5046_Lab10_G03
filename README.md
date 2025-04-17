@@ -24,7 +24,7 @@ Data Management: Firebase
 
 # Build Step
 # Clone the repository
-git clone https://github.com/ivan1112234rfds/FIT5046.git
+git clone https://github.com/ivan1112234rfds/FIT5046_Lab10_G03.git
 
 
 # How to Use Temporary Navigation
