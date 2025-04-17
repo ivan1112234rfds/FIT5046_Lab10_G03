@@ -31,6 +31,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.activitymanager.mapper.Activity
 import com.example.assignmentcode.ui.theme.AssignmentCodeTheme
 import com.example.fit5046.LoginScreen
 import com.example.fit5046.RegisterScreen
@@ -81,7 +82,7 @@ fun ActivityApp() {
         composable("create_activity") {
             CreateActivityScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onActivityCreated = { newActivity ->
+                onActivityCreated = {
                 }
             )
         }
@@ -89,95 +90,29 @@ fun ActivityApp() {
             navController.navigate("activity_details/$activityId")
         },) }
         composable("home") {
-        HomeScreen(navController)
+            HomeScreen(navController)
         }
         composable("login") {
-        LoginScreen(navController)
-    }
+            LoginScreen(navController)
+        }
 
         composable("register") {
-        RegisterScreen(navController)
-    }
-    }
-}
-@Composable
-fun HomeScreen(navController: NavController) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "活动管理应用",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-
-        // 添加导航按钮
-        Button(
-            onClick = { navController.navigate("activityList") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text("查看活动列表")
+            RegisterScreen(navController)
         }
-
-        Button(
-            onClick = { navController.navigate("activities") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text("我的活动")
+        composable("Manage") {
+            ActivityManageScreen(navController)
         }
-
-        Button(
-            onClick = { navController.navigate("create_activity") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text("创建新活动")
+        composable("Dashboard") {
+            DashboardScreen(navController)
         }
-
-        Button(
-            onClick = { navController.navigate("login") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text("登录")
-        }
-
-        // 添加注册按钮
-        Button(
-            onClick = { navController.navigate("register") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text("注册")
+        composable("forgot_password") {
+            ForgotPasswordScreen(navController)
         }
     }
 }
 
-data class Activity(
-    val id: String,
-    val title: String,
-    val description: String,
-    val date: Date,
-    val location: String,
-    val organizer: String,
-    val rating: Double,
-    val duration: String,
-    val type: String,
-    val participants: Int,
-    val isFavorite: Boolean = false,
-    val coordinates: LatLng = LatLng(0.0, 0.0)  // 添加位置坐标
-)
+
+
 
 
 

@@ -127,7 +127,6 @@ fun RegisterScreen(navController: NavController) {
         Button(
             onClick = {
                 println("Register info: $username, $password, $nickname, $gender, $age, $birthday")
-                // 注册逻辑...
             },
             modifier = Modifier
                 .fillMaxWidth()

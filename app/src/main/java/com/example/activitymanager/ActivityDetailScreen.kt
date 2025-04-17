@@ -47,7 +47,6 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
-    // 在实际应用中，这应该从数据库或API获取
     val allActivities = remember { createMockActivities() }
     val activity = remember { allActivities.find { it.id == activityId } }
 
@@ -85,7 +84,6 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                 .background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(16.dp)
         ) {
-            // 活动图片
             item {
                 Box(
                     modifier = Modifier
@@ -98,7 +96,6 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // 基本信息
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -141,7 +138,6 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // 日期和时长
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.DateRange,
@@ -174,7 +170,6 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // 价格和注册按钮
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -196,7 +191,6 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // 活动描述
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -224,7 +218,6 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // 位置信息和地图
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -258,8 +251,7 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Google Maps 集成
-                        // 注意：这需要一个有效的Google Maps API密钥和相应的权限
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -267,7 +259,6 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(Color(0xFFE0E5FF))
                         ) {
-                            // 实际应用中，这里应该是GoogleMap组件
                             // GoogleMap(
                             //    modifier = Modifier.fillMaxSize(),
                             //    cameraPositionState = rememberCameraPositionState {
@@ -280,7 +271,6 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                             //    )
                             // }
 
-                            // 由于这是示例，我们使用一个占位符
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
@@ -292,7 +282,7 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         OutlinedButton(
-                            onClick = { /* 打开地图应用 */ },
+                            onClick = { /*  */ },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp)
                         ) {

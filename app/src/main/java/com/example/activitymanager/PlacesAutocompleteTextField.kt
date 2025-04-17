@@ -49,7 +49,7 @@ fun PlacesAutocompleteTextField(
                     placesManager.clearPredictions()
                 }
             },
-            label = { Text("Address") },
+            label = { Text("Address *") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )

@@ -1,4 +1,3 @@
-import com.example.activitymanager.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -11,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.activitymanager.mapper.Activity
 import com.google.android.gms.maps.model.LatLng
 import java.text.SimpleDateFormat
 import java.util.*
@@ -21,7 +21,7 @@ fun CreateActivityScreen(
     onNavigateBack: () -> Unit,
     onActivityCreated: (Activity) -> Unit
 ) {
-    // 状态管理
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
@@ -33,27 +33,36 @@ fun CreateActivityScreen(
     var participants by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf("0.0") }
     var longitude by remember { mutableStateOf("0.0") }
-  
-    // 日期选择器状态
+
+    var isTypeDropdownExpanded by remember { mutableStateOf(false) }
+
+    val activityTypes = listOf(
+        "Sports",
+        "Education",
+        "Entertainment",
+        "Social",
+        "Business",
+        "Culture",
+        "Charity",
+        "Technology",
+        "Health",
+        "Other"
+    )
     val datePickerState = rememberDatePickerState()
     var showDatePicker by remember { mutableStateOf(false) }
 
-    // 时间选择器状态
     val timePickerState = rememberTimePickerState()
     var showTimePicker by remember { mutableStateOf(false) }
 
-    // 表单验证
     val isFormValid = title.isNotBlank() && description.isNotBlank() &&
             location.isNotBlank() && date.isNotBlank() && time.isNotBlank() &&
             organizer.isNotBlank() && duration.isNotBlank()
 
-    // 日期选择器对话框
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    // 格式化选中的日期
                     datePickerState.selectedDateMillis?.let {
                         val selectedDate = Date(it)
                         val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -125,7 +134,7 @@ fun CreateActivityScreen(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Activity Title") },
+                label = { Text("Activity Title *") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -134,7 +143,7 @@ fun CreateActivityScreen(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description") },
+                label = { Text("Description *") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp),
@@ -151,12 +160,44 @@ fun CreateActivityScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
+            ExposedDropdownMenuBox(
+                expanded = isTypeDropdownExpanded,
+                onExpandedChange = { isTypeDropdownExpanded = it },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = type,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Activity Type") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = isTypeDropdownExpanded)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
+                )
 
-            // 日期选择
+                ExposedDropdownMenu(
+                    expanded = isTypeDropdownExpanded,
+                    onDismissRequest = { isTypeDropdownExpanded = false }
+                ) {
+                    activityTypes.forEach { activityType ->
+                        DropdownMenuItem(
+                            text = { Text(activityType) },
+                            onClick = {
+                                type = activityType
+                                isTypeDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
             OutlinedTextField(
                 value = date,
                 onValueChange = { date = it },
-                label = { Text("Date") },
+                label = { Text("Date *") },
                 modifier = Modifier.fillMaxWidth(),
                 readOnly = true,
                 trailingIcon = {
@@ -166,11 +207,10 @@ fun CreateActivityScreen(
                 }
             )
 
-            // 时间选择
             OutlinedTextField(
                 value = time,
                 onValueChange = { time = it },
-                label = { Text("Time") },
+                label = { Text("Time *") },
                 modifier = Modifier.fillMaxWidth(),
                 readOnly = true,
                 trailingIcon = {
@@ -180,7 +220,6 @@ fun CreateActivityScreen(
                 }
             )
 
-            // 组织者输入
             OutlinedTextField(
                 value = organizer,
                 onValueChange = { organizer = it },
@@ -192,7 +231,6 @@ fun CreateActivityScreen(
                 }
             )
 
-            // 活动时长
             OutlinedTextField(
                 value = duration,
                 onValueChange = { duration = it },
@@ -204,11 +242,9 @@ fun CreateActivityScreen(
                 }
             )
 
-            // 参与人数
             OutlinedTextField(
                 value = participants,
                 onValueChange = {
-                    // 只允许输入数字
                     if (it.isEmpty() || it.all { char -> char.isDigit() }) {
                         participants = it
                     }
@@ -224,10 +260,8 @@ fun CreateActivityScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 发布按钮
             Button(
                 onClick = {
-                    // 创建活动对象并回调
                     val newActivity = Activity(
                         id = UUID.randomUUID().toString(),
                         title = title,
@@ -257,7 +291,6 @@ fun CreateActivityScreen(
     }
 }
 
-// 辅助函数：将日期和时间字符串解析为Date对象
 private fun parseDateTime(dateStr: String, timeStr: String): Date {
     val dateTimeStr = "$dateStr $timeStr"
     val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())

@@ -76,6 +76,18 @@ fun LoginScreen(navController: NavController) {
                 }
             }
         )
+        ClickableText(
+            text = AnnotatedString("Forgot password?"),
+            onClick = { navController.navigate("forgot_password") },
+            style = LocalTextStyle.current.copy(
+                color = Color(0xFF5A6DF9),
+                fontSize = 14.sp,
+                textAlign = TextAlign.End
+            ),
+            modifier = Modifier
+                .align(Alignment.End)
+                .padding(top = 4.dp, bottom = 16.dp)
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -106,19 +118,17 @@ fun LoginScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(text = "Or continue with")
-
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { /* Google 登录逻辑 */ },
+            onClick = { /* Google */ },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE3F2FD))
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                painter = painterResource(id = R.drawable.google),
                 contentDescription = "Google",
                 modifier = Modifier.size(18.dp),
                 tint = Color.Unspecified
