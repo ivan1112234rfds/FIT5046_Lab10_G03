@@ -34,11 +34,11 @@ import com.example.activitymanager.createMockActivities
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
-    // 模拟活动列表数据，实际项目中可从网络/数据库获取
+
     val activities = createMockActivities()
 
     Column(modifier = modifier.fillMaxSize()) {
-        // 1. 顶部 Header，使用 Material 3 的 CenterAlignedTopAppBar
+
         CenterAlignedTopAppBar(
             title = {
                 Text(
@@ -62,12 +62,12 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             )
         )
 
-        // 2. Banner 区域
+
         BannerSection()
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. “Top Rated” 标题区域
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -92,7 +92,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 4. 活动列表 —— 使用 LazyColumn 显示活动卡片
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -113,7 +113,7 @@ fun BannerSection() {
             .height(200.dp)
             .padding(16.dp)
             .background(
-                // 使用 Material 3 的颜色体系
+
                 brush = Brush.horizontalGradient(
                     colors = listOf(
                         MaterialTheme.colorScheme.primary,
@@ -127,7 +127,7 @@ fun BannerSection() {
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 左侧：文字和按钮
+
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -141,13 +141,13 @@ fun BannerSection() {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
-                    onClick = { /* 处理按钮点击 */ },
+                    onClick = {  },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                 ) {
                     Text("Get Now")
                 }
             }
-            // 右侧：图片展示
+
             androidx.compose.foundation.Image(
                 painter = painterResource(id = R.drawable.ic_banner_image), // 替换成你项目中的 Banner 图片
                 contentDescription = "Banner Illustration",
@@ -171,14 +171,14 @@ fun ActivityCard(activity: Activity) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 活动图片，替换成你实际的图片资源
+
             androidx.compose.foundation.Image(
                 painter = painterResource(id = R.drawable.ic_activity_image),
                 contentDescription = activity.title,
                 modifier = Modifier.size(64.dp)
             )
             Spacer(modifier = Modifier.width(16.dp))
-            // 活动文本信息
+
             Column {
                 Text(
                     text = activity.title,

@@ -48,7 +48,7 @@ fun BottomNavigationBar(
             contentAlignment = Alignment.Center
         ) {
             FloatingActionButton(
-                onClick = { /* 搜索动作 */ },
+                onClick = {  },
                 containerColor = Color(0xFF6366F1),
                 contentColor = Color.White,
                 elevation = FloatingActionButtonDefaults.elevation(4.dp)

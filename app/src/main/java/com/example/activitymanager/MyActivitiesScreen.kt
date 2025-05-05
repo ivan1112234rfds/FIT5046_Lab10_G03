@@ -93,7 +93,7 @@ fun MyActivitiesScreen(onActivityClick: (String) -> Unit, onCreateActivityClick:
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            // 选项卡
+
             TabRow(
                 selectedTabIndex = selectedTabIndex
             ) {
@@ -151,7 +151,7 @@ fun ActivityItem(activity: Activity, onClick: () -> Unit) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 活动图片 (模拟)
+
             Box(
                 modifier = Modifier
                     .size(75.dp)
@@ -167,7 +167,7 @@ fun ActivityItem(activity: Activity, onClick: () -> Unit) {
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // 活动信息
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -201,12 +201,12 @@ fun ActivityItem(activity: Activity, onClick: () -> Unit) {
                 )
             }
 
-            // 右侧价格和收藏图标
+
             Column(
                 horizontalAlignment = Alignment.End
             ) {
                 IconButton(
-                    onClick = { /* 收藏功能 */ },
+                    onClick = { },
                     modifier = Modifier.size(24.dp)
                 ) {
                     Icon(

@@ -83,14 +83,14 @@ fun CreateActivityScreen(
         }
     }
 
-    // 时间选择器对话框
+
     if (showTimePicker) {
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
             title = { Text("Choose Time") },
             confirmButton = {
                 TextButton(onClick = {
-                    // 格式化选中的时间
+
                     val hour = timePickerState.hour
                     val minute = timePickerState.minute
                     time = String.format("%02d:%02d", hour, minute)
@@ -130,7 +130,7 @@ fun CreateActivityScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 标题输入
+
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
@@ -139,7 +139,7 @@ fun CreateActivityScreen(
                 singleLine = true
             )
 
-            // 描述输入
+
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
