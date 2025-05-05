@@ -39,7 +39,7 @@ fun DashboardScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 页面标题
+
             Text(
                 text = "Dashboard",
                 style = MaterialTheme.typography.headlineMedium.copy(
@@ -49,7 +49,7 @@ fun DashboardScreen(navController: NavController) {
                 )
             )
 
-            // 卡片容器：柱状图
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -87,7 +87,7 @@ fun DashboardScreen(navController: NavController) {
                 )
             }
 
-            // 卡片容器：饼图
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

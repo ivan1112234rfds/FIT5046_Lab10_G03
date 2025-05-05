@@ -36,11 +36,11 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
-    // 状态
+
     var isEditing by remember { mutableStateOf(false) }
     var isPrefOpen by remember { mutableStateOf(false) }
 
-    // 用户资料
+
     var name by remember { mutableStateOf("Fan") }
     var address by remember { mutableStateOf("Clayton, Melbourne") }
     var phone by remember { mutableStateOf("123-456-7890") }
@@ -48,7 +48,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
     var email by remember { mutableStateOf("fan@student.monash.edu") }
     var avatarResId by remember { mutableStateOf(R.drawable.placeholder_avatar) }
 
-    // 偏好设置
+
     val allTypes = listOf("Hiking", "Biking", "Movies", "Poker")
     var selectedType by remember { mutableStateOf(allTypes.first()) }
     var typeDropdownExpanded by remember { mutableStateOf(false) }
@@ -72,7 +72,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // 顶部头像卡片
+
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -101,7 +101,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
 
         Spacer(Modifier.height(16.dp))
 
-        // 合并卡片：Edit + Preference
+
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -189,7 +189,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                 if (isPrefOpen) {
                     Spacer(Modifier.height(12.dp))
                     Column {
-                        // Activity type 下拉
+
                         Text("Activity type", fontWeight = FontWeight.SemiBold)
 
                         ExposedDropdownMenuBox(
@@ -253,9 +253,9 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
 
         Spacer(Modifier.height(24.dp))
 
-        // Logout 按钮
+
         Button(
-            onClick = { /* 登出 */ },
+            onClick = {  },
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
             modifier = Modifier.fillMaxWidth()
@@ -265,7 +265,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
     }
 }
 
-// 辅助 Composables
+
 @Composable
 fun TextFieldWithLabel(label: String, value: String, onValueChange: (String) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {

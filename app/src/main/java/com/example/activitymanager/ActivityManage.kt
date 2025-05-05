@@ -110,7 +110,7 @@ fun ActivityManageScreen(navController : NavController) {
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = { /* 打开添加页面 */ },
+                        onClick = {  },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp),
@@ -154,7 +154,7 @@ fun ActivityCard(
             confirmButton = {
                 TextButton(onClick = {
                     showDialog = false
-                    onDeleteClick() // 执行删除操作
+                    onDeleteClick()
                 }) {
                     Text("Confirm")
                 }
@@ -178,7 +178,7 @@ fun ActivityCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 左边图像占位
+
             Box(
                 modifier = Modifier
                     .size(75.dp)
@@ -194,7 +194,7 @@ fun ActivityCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // 中间文本
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
                 Text(
@@ -224,7 +224,7 @@ fun ActivityCard(
                 )
             }
 
-            // 右侧编辑和删除图标（上下排列）
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
