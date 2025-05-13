@@ -21,13 +21,13 @@ class FirebaseHelper {
     private val auth: FirebaseAuth = Firebase.auth
     private val db: FirebaseFirestore = Firebase.firestore
     
-    // Google 登录客户端
+    // Google sign-in client
     private var googleSignInClient: GoogleSignInClient? = null
     
-    // 用户集合引用
+    // Users collection reference
     private val usersCollection = db.collection("users")
     
-    // 初始化 Google 登录
+    // Initialize Google sign-in
     fun initGoogleSignIn(context: Context, webClientId: String) {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(webClientId)
@@ -37,10 +37,10 @@ class FirebaseHelper {
         googleSignInClient = GoogleSignIn.getClient(context, gso)
     }
     
-    // 获取 Google 登录意图
+    // Get Google sign-in intent
     fun getGoogleSignInIntent() = googleSignInClient?.signInIntent
     
-    // 处理 Google 登录结果
+    // Handle Google sign-in result
     suspend fun handleGoogleSignInResult(
         data: android.content.Intent?,
         onSuccess: () -> Unit,
@@ -50,15 +50,15 @@ class FirebaseHelper {
             val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             val account = task.getResult(ApiException::class.java)
             
-            // 使用 Google 账号凭证进行 Firebase 身份验证
+            // Use Google account credentials for Firebase authentication
             firebaseAuthWithGoogle(account, onSuccess, onError)
         } catch (e: Exception) {
-            Log.e(TAG, "Google 登录失败", e)
-            onError(e.message ?: "Google 登录失败")
+            Log.e(TAG, "Google sign-in failed", e)
+            onError(e.message ?: "Google sign-in failed")
         }
     }
     
-    // 使用 Google 凭证进行 Firebase 身份验证
+    // Use Google credentials for Firebase authentication
     private suspend fun firebaseAuthWithGoogle(
         account: GoogleSignInAccount,
         onSuccess: () -> Unit,
@@ -68,12 +68,12 @@ class FirebaseHelper {
             val credential = GoogleAuthProvider.getCredential(account.idToken, null)
             val authResult = auth.signInWithCredential(credential).await()
             
-            // 检查是否是新用户
+            // Check if the user is new
             val isNewUser = authResult.additionalUserInfo?.isNewUser ?: false
             val uid = authResult.user?.uid ?: ""
             
             if (isNewUser) {
-                // 创建新用户文档
+                // Create new user document
                 val user = User(
                     uid = uid,
                     username = account.displayName ?: "",
@@ -84,15 +84,15 @@ class FirebaseHelper {
                 usersCollection.document(uid).set(user).await()
             }
             
-            Log.d(TAG, "Google 登录成功: $uid")
+            Log.d(TAG, "Google sign-in successful: $uid")
             onSuccess()
         } catch (e: Exception) {
-            Log.e(TAG, "Firebase 使用 Google 凭证登录失败", e)
-            onError(e.message ?: "Google 账号验证失败")
+            Log.e(TAG, "Firebase authentication with Google credentials failed", e)
+            onError(e.message ?: "Google account verification failed")
         }
     }
     
-    // 用户注册
+    // User registration
     suspend fun registerUser(
         email: String, 
         password: String, 
@@ -101,30 +101,30 @@ class FirebaseHelper {
         onError: (String) -> Unit
     ) {
         try {
-            // 创建用户身份验证
+            // Create user authentication
             val authResult = auth.createUserWithEmailAndPassword(email, password).await()
             
-            // 获取用户 UID
+            // Get user UID
             val uid = authResult.user?.uid ?: return
             
-            // 创建用户文档
+            // Create user document
             val userWithId = user.copy(uid = uid, email = email)
             
-            // 将用户信息存储到 Firestore
+            // Store user information in Firestore
             usersCollection.document(uid).set(userWithId).await()
             
-            // 发送验证邮件
-            auth.currentUser?.sendEmailVerification()
+            // Comment out the automatic email verification
+            // auth.currentUser?.sendEmailVerification()
             
-            Log.d(TAG, "用户注册成功: $uid")
+            Log.d(TAG, "User registration successful: $uid")
             onSuccess()
         } catch (e: Exception) {
-            Log.e(TAG, "注册失败", e)
-            onError(e.message ?: "注册失败")
+            Log.e(TAG, "Registration failed", e)
+            onError(e.message ?: "Registration failed")
         }
     }
     
-    // 用户登录
+    // User login
     suspend fun loginUser(
         email: String,
         password: String,
@@ -133,18 +133,18 @@ class FirebaseHelper {
     ) {
         try {
             auth.signInWithEmailAndPassword(email, password).await()
-            Log.d(TAG, "登录成功: ${auth.currentUser?.uid}")
+            Log.d(TAG, "Login successful: ${auth.currentUser?.uid}")
             onSuccess()
         } catch (e: Exception) {
-            Log.e(TAG, "登录失败", e)
-            onError(e.message ?: "登录失败")
+            Log.e(TAG, "Login failed", e)
+            onError(e.message ?: "Login failed")
         }
     }
     
-    // 获取当前登录用户
+    // Get current logged-in user
     fun getCurrentUser() = auth.currentUser
     
-    // 获取用户数据
+    // Get user data
     suspend fun getUserData(
         uid: String = auth.currentUser?.uid ?: "",
         onSuccess: (User) -> Unit,
@@ -157,43 +157,65 @@ class FirebaseHelper {
             if (user != null) {
                 onSuccess(user)
             } else {
-                onError("未找到用户数据")
+                onError("User data not found")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "获取用户数据失败", e)
-            onError(e.message ?: "获取用户数据失败")
+            Log.e(TAG, "Failed to get user data", e)
+            onError(e.message ?: "Failed to get user data")
         }
     }
     
-    // 退出登录
+    // Sign out
     fun signOut() {
         auth.signOut()
     }
     
-    // 发送重置密码邮件
+    // Send password reset email
     suspend fun sendPasswordResetEmail(
         email: String,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
         try {
+            // Use default settings to send password reset email, without custom domain
             auth.sendPasswordResetEmail(email).await()
-            Log.d(TAG, "密码重置邮件已发送: $email")
+            
+            Log.d(TAG, "Password reset email sent: $email")
             onSuccess()
         } catch (e: Exception) {
-            Log.e(TAG, "发送密码重置邮件失败", e)
-            onError(e.message ?: "发送密码重置邮件失败")
+            Log.e(TAG, "Failed to send password reset email", e)
+            onError(e.message ?: "Failed to send password reset email")
         }
     }
     
-    // 退出 Google 登录
+    // Sign out from Google
     fun signOutGoogle(context: Context) {
         googleSignInClient?.signOut()
         signOut()
     }
     
+    // Add a separate method for sending email verification
+    suspend fun sendEmailVerification(
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            val currentUser = auth.currentUser
+            if (currentUser != null) {
+                currentUser.sendEmailVerification().await()
+                Log.d(TAG, "Verification email sent: ${currentUser.email}")
+                onSuccess()
+            } else {
+                onError("No logged-in user")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send verification email", e)
+            onError(e.message ?: "Failed to send verification email")
+        }
+    }
+    
     companion object {
         private const val TAG = "FirebaseHelper"
-        const val RC_SIGN_IN = 9001 // Google 登录请求代码
+        const val RC_SIGN_IN = 9001 // Google sign-in request code
     }
 } 

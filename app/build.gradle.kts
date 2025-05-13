@@ -5,7 +5,7 @@ plugins {
     id("com.google.gms.google-services")
 }
 dependencies {
-    // ... 其他依赖
+    // ... Other dependencies
     implementation("androidx.navigation:navigation-compose:2.7.0")
     implementation("com.google.android.gms:play-services-maps:18.1.0")
     implementation("com.google.maps.android:maps-compose:2.15.0")
@@ -13,17 +13,17 @@ dependencies {
     implementation ("com.squareup.okhttp3:okhttp:4.9.3")
     implementation ("com.squareup.okhttp3:okhttp-dnsoverhttps:4.9.3")
 
-    // 导入 Firebase BoM
+    // Import Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
     
-    // 添加 Firebase Analytics
+    // Add Firebase Analytics
     implementation("com.google.firebase:firebase-analytics")
     
-    // Firebase 身份验证和数据库
+    // Firebase Authentication and Database
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     
-    // Google 登录所需依赖
+    // Dependencies required for Google Sign-in
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     implementation("androidx.compose.material:material-icons-extended")

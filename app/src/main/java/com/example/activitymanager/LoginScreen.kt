@@ -52,12 +52,12 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "欢迎!",
+            text = "Welcome!",
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Text(
-            text = "登录以继续!",
+            text = "Sign in to continue!",
             style = MaterialTheme.typography.bodyMedium,
             color = Color.Gray,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -68,7 +68,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("邮箱") },
+            label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -77,7 +77,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("密码") },
+            label = { Text("Password") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
@@ -92,7 +92,7 @@ fun LoginScreen(
             }
         )
         ClickableText(
-            text = AnnotatedString("忘记密码?"),
+            text = AnnotatedString("Forgot password?"),
             onClick = { navController.navigate("forgot_password") },
             style = LocalTextStyle.current.copy(
                 color = Color(0xFF5A6DF9),
@@ -115,12 +115,12 @@ fun LoginScreen(
                 onCheckedChange = { rememberMe = it },
                 colors = CheckboxDefaults.colors(checkedColor = Color(0xFF5A6DF9))
             )
-            Text(text = "记住我")
+            Text(text = "Remember me")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
         
-        // 显示错误信息
+        // Display error message
         errorMessage?.let {
             Text(
                 text = it,
@@ -142,9 +142,9 @@ fun LoginScreen(
                             password = password,
                             onSuccess = {
                                 isLoading = false
-                                // 在主线程显示提示
+                                // Show toast on main thread
                                 CoroutineScope(Dispatchers.Main).launch {
-                                    Toast.makeText(context, "登录成功!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
                                     navController.navigate("HomeScreen") {
                                         popUpTo("login") { inclusive = true }
                                     }
@@ -169,14 +169,14 @@ fun LoginScreen(
                     modifier = Modifier.size(24.dp)
                 )
             } else {
-                Text("登录", color = Color.White)
+                Text("Sign in", color = Color.White)
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "- 或者 -",
+            text = "- OR -",
             style = MaterialTheme.typography.bodyMedium,
             color = Color.Gray,
             textAlign = TextAlign.Center,
@@ -199,13 +199,13 @@ fun LoginScreen(
                 tint = Color.Unspecified
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("使用 Google 账号登录", color = Color.Black)
+            Text("Continue with Google", color = Color.Black)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         ClickableText(
-            text = AnnotatedString("还不是会员? 立即注册!"),
+            text = AnnotatedString("Not a member? Register now!"),
             onClick = { navController.navigate("register") },
             style = LocalTextStyle.current.copy(
                 color = Color(0xFF5A6DF9),
@@ -221,7 +221,7 @@ private fun validateInputs(email: String, password: String): Boolean {
         return false
     }
     
-    // 检查邮箱格式
+    // Check email format
     val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+"
     if (!email.matches(emailPattern.toRegex())) {
         return false
