@@ -1,10 +1,13 @@
 package com.example.activitymanager
 
 import CreateActivityScreen
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,40 +28,97 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.activitymanager.firebase.FirebaseHelper
 import com.example.activitymanager.mapper.Activity
 import com.example.assignmentcode.ui.theme.AssignmentCodeTheme
-import com.example.fit5046.LoginScreen
-import com.example.fit5046.RegisterScreen
+import com.example.activitymanager.LoginScreen
+import com.example.activitymanager.RegisterScreen
 import com.example.fit5046assignment.HomeScreen
 import com.example.fit5046assignment.ProfileScreen
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.libraries.places.api.Places
+import com.google.firebase.FirebaseApp
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private val firebaseHelper = FirebaseHelper()
+    private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // 初始化 Firebase
+        if (FirebaseApp.getApps(this).isEmpty()) {
+            FirebaseApp.initializeApp(this)
+        }
+        
+        // 初始化 Places API
         if (!Places.isInitialized()) {
             Places.initialize(applicationContext, getString(R.string.google_maps_key))
         }
-        setContent {
-            AssignmentCodeTheme {
-                ActivityApp()
+        
+        // 初始化 Google 登录
+        val webClientId = getString(R.string.web_client_id)
+        firebaseHelper.initGoogleSignIn(this, webClientId)
+        
+        // 注册 Google 登录结果处理
+        googleSignInLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            lifecycleScope.launch {
+                firebaseHelper.handleGoogleSignInResult(
+                    data = result.data,
+                    onSuccess = {
+                        // 登录成功后导航到主页
+                        // 由于这里不能直接使用 navController，我们可以通过设置一个标志来处理
+                        showToast("Google 登录成功")
+                    },
+                    onError = { error ->
+                        showToast("Google 登录失败: $error")
+                    }
+                )
             }
         }
+        
+        setContent {
+            AssignmentCodeTheme {
+                ActivityApp(
+                    firebaseHelper = firebaseHelper,
+                    onGoogleSignIn = { startGoogleSignIn() }
+                )
+            }
+        }
+    }
+    
+    private fun startGoogleSignIn() {
+        val signInIntent = firebaseHelper.getGoogleSignInIntent()
+        if (signInIntent != null) {
+            googleSignInLauncher.launch(signInIntent)
+        } else {
+            showToast("Google 登录初始化失败")
+        }
+    }
+    
+    private fun showToast(message: String) {
+        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show()
     }
 }
 
 @Composable
-fun ActivityApp() {
+fun ActivityApp(
+    firebaseHelper: FirebaseHelper,
+    onGoogleSignIn: () -> Unit
+) {
     val navController = rememberNavController()
-
 
     NavHost(navController = navController, startDestination = "Home") {
         composable("activities") {
@@ -95,11 +155,14 @@ fun ActivityApp() {
             HomeScreens(navController)
         }
         composable("login") {
-            LoginScreen(navController)
+            LoginScreen(
+                navController = navController,
+                onGoogleSignIn = onGoogleSignIn
+            )
         }
 
         composable("register") {
-            RegisterScreen(navController)
+            com.example.activitymanager.RegisterScreen(navController)
         }
         composable("Manage") {
             ActivityManageScreen(navController)

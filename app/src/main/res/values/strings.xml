@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Activity manager</string>
     <string name="google_maps_key">AIzaSyAGEIj_BlZS729uEs5z1TOyKEqJoF6v4Kg</string>
+    <string name="web_client_id">619915258740-dq30oedntm6fge19kktj74mpe7p6bdnd.apps.googleusercontent.com</string>
 </resources>

@@ -1,5 +1,6 @@
-package com.example.fit5046
+package com.example.activitymanager
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
@@ -10,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -21,13 +23,26 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.activitymanager.R
+import com.example.activitymanager.firebase.FirebaseHelper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(navController: NavController) {
-    var username by remember { mutableStateOf("") }
+fun LoginScreen(
+    navController: NavController,
+    onGoogleSignIn: () -> Unit = {}
+) {
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    
+    val context = LocalContext.current
+    val firebaseHelper = remember { FirebaseHelper() }
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -37,12 +52,12 @@ fun LoginScreen(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Welcome!",
+            text = "欢迎!",
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Text(
-            text = "Sign in to continue!",
+            text = "登录以继续!",
             style = MaterialTheme.typography.bodyMedium,
             color = Color.Gray,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -51,9 +66,9 @@ fun LoginScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("邮箱") },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -62,7 +77,7 @@ fun LoginScreen(navController: NavController) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text("密码") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
@@ -77,7 +92,7 @@ fun LoginScreen(navController: NavController) {
             }
         )
         ClickableText(
-            text = AnnotatedString("Forgot password?"),
+            text = AnnotatedString("忘记密码?"),
             onClick = { navController.navigate("forgot_password") },
             style = LocalTextStyle.current.copy(
                 color = Color(0xFF5A6DF9),
@@ -100,28 +115,78 @@ fun LoginScreen(navController: NavController) {
                 onCheckedChange = { rememberMe = it },
                 colors = CheckboxDefaults.colors(checkedColor = Color(0xFF5A6DF9))
             )
-            Text(text = "Remember me")
+            Text(text = "记住我")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+        
+        // 显示错误信息
+        errorMessage?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
 
         Button(
             onClick = {
-                println("Login attempt: Username - $username, Password - $password")
+                if (validateInputs(email, password)) {
+                    isLoading = true
+                    errorMessage = null
+                    
+                    coroutineScope.launch(Dispatchers.IO) {
+                        firebaseHelper.loginUser(
+                            email = email,
+                            password = password,
+                            onSuccess = {
+                                isLoading = false
+                                // 在主线程显示提示
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    Toast.makeText(context, "登录成功!", Toast.LENGTH_SHORT).show()
+                                    navController.navigate("HomeScreen") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onError = { error ->
+                                isLoading = false
+                                errorMessage = error
+                            }
+                        )
+                    }
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
+            enabled = !isLoading
         ) {
-            Text("Sign in", color = Color.White)
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                Text("登录", color = Color.White)
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        Text(
+            text = "- 或者 -",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { /* Google */ },
+            onClick = { onGoogleSignIn() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -134,13 +199,13 @@ fun LoginScreen(navController: NavController) {
                 tint = Color.Unspecified
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Continue with Google", color = Color.Black)
+            Text("使用 Google 账号登录", color = Color.Black)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         ClickableText(
-            text = AnnotatedString("Not a member? Register now!"),
+            text = AnnotatedString("还不是会员? 立即注册!"),
             onClick = { navController.navigate("register") },
             style = LocalTextStyle.current.copy(
                 color = Color(0xFF5A6DF9),
@@ -149,6 +214,20 @@ fun LoginScreen(navController: NavController) {
             )
         )
     }
+}
+
+private fun validateInputs(email: String, password: String): Boolean {
+    if (email.isBlank() || password.isBlank()) {
+        return false
+    }
+    
+    // 检查邮箱格式
+    val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+"
+    if (!email.matches(emailPattern.toRegex())) {
+        return false
+    }
+    
+    return true
 }
 
 @Preview(showBackground = true)
