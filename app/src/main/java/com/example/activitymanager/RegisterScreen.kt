@@ -55,11 +55,11 @@ fun RegisterScreen(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "创建账号",
+            text = "Create Account",
             style = MaterialTheme.typography.headlineLarge,
         )
         Text(
-            text = "注册以开始使用!",
+            text = "Sign up to get started!",
             style = MaterialTheme.typography.bodyMedium,
             color = Color.Gray
         )
@@ -69,7 +69,7 @@ fun RegisterScreen(navController: NavController) {
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
-            label = { Text("用户名") },
+            label = { Text("Username") },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -78,7 +78,7 @@ fun RegisterScreen(navController: NavController) {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("邮箱") },
+            label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -87,7 +87,7 @@ fun RegisterScreen(navController: NavController) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("密码") },
+            label = { Text("Password") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
@@ -103,13 +103,13 @@ fun RegisterScreen(navController: NavController) {
         OutlinedTextField(
             value = nickname,
             onValueChange = { nickname = it },
-            label = { Text("昵称") },
+            label = { Text("Nickname") },
             modifier = Modifier.fillMaxWidth(),
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text("性别:", modifier = Modifier.align(Alignment.Start))
+        Text("Gender:", modifier = Modifier.align(Alignment.Start))
 
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -119,14 +119,14 @@ fun RegisterScreen(navController: NavController) {
                 onClick = { gender = "Male" },
                 colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF5A6DF9))
             )
-            Text("男")
+            Text("Male")
             Spacer(modifier = Modifier.width(16.dp))
             RadioButton(
                 selected = gender == "Female",
                 onClick = { gender = "Female" },
                 colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF5A6DF9))
             )
-            Text("女")
+            Text("Female")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -134,7 +134,7 @@ fun RegisterScreen(navController: NavController) {
         OutlinedTextField(
             value = age,
             onValueChange = { age = it },
-            label = { Text("年龄") },
+            label = { Text("Age") },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -143,13 +143,13 @@ fun RegisterScreen(navController: NavController) {
         OutlinedTextField(
             value = birthday,
             onValueChange = { birthday = it },
-            label = { Text("生日 (例如: 2000-01-01)") },
+            label = { Text("Birthday (e.g., 2000-01-01)") },
             modifier = Modifier.fillMaxWidth(),
         )
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 显示错误信息
+        // Display error message
         errorMessage?.let {
             Text(
                 text = it,
@@ -162,7 +162,7 @@ fun RegisterScreen(navController: NavController) {
         Button(
             onClick = {
                 if (validateInputs(username, email, password, nickname, age, birthday)) {
-                    // 创建用户对象
+                    // Create user object
                     val user = User(
                         username = username,
                         nickname = nickname,
@@ -172,7 +172,7 @@ fun RegisterScreen(navController: NavController) {
                         email = email
                     )
                     
-                    // 注册用户
+                    // Register user
                     isLoading = true
                     errorMessage = null
                     
@@ -183,9 +183,9 @@ fun RegisterScreen(navController: NavController) {
                             user = user,
                             onSuccess = {
                                 isLoading = false
-                                // 在主线程显示提示
+                                // Show toast on main thread
                                 CoroutineScope(Dispatchers.Main).launch {
-                                    Toast.makeText(context, "注册成功!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
                                     navController.navigate("login")
                                 }
                             },
@@ -208,14 +208,14 @@ fun RegisterScreen(navController: NavController) {
                     modifier = Modifier.size(24.dp)
                 )
             } else {
-                Text("注册", color = Color.White)
+                Text("Register", color = Color.White)
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         ClickableText(
-            text = AnnotatedString("已有账号? 登录"),
+            text = AnnotatedString("Already have an account? Login"),
             onClick = { navController.navigate("login") },
             style = LocalTextStyle.current.copy(color = Color(0xFF5A6DF9), fontSize = 14.sp)
         )
@@ -234,13 +234,13 @@ private fun validateInputs(
         return false
     }
     
-    // 检查邮箱格式
+    // Check email format
     val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+"
     if (!email.matches(emailPattern.toRegex())) {
         return false
     }
     
-    // 检查密码长度
+    // Check password length
     if (password.length < 6) {
         return false
     }
