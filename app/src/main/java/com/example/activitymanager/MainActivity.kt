@@ -3,6 +3,7 @@ package com.example.activitymanager
 import CreateActivityScreen
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -56,21 +57,43 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // 初始化 Firebase
-        if (FirebaseApp.getApps(this).isEmpty()) {
-            FirebaseApp.initializeApp(this)
+        // Initialize Firebase
+        try {
+            if (FirebaseApp.getApps(this).isEmpty()) {
+                FirebaseApp.initializeApp(this)
+                Log.d(TAG, "Firebase initialized successfully")
+            } else {
+                Log.d(TAG, "Firebase already initialized")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing Firebase", e)
+            showToast("Failed to initialize Firebase: ${e.message}")
         }
         
-        // 初始化 Places API
-        if (!Places.isInitialized()) {
-            Places.initialize(applicationContext, getString(R.string.google_maps_key))
+        // Initialize Places API
+        try {
+            if (!Places.isInitialized()) {
+                Places.initialize(applicationContext, getString(R.string.google_maps_key))
+                Log.d(TAG, "Places API initialized successfully")
+            } else {
+                Log.d(TAG, "Places API already initialized")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing Places API", e)
+            showToast("Failed to initialize Places API: ${e.message}")
         }
         
-        // 初始化 Google 登录
-        val webClientId = getString(R.string.web_client_id)
-        firebaseHelper.initGoogleSignIn(this, webClientId)
+        // Initialize Google Sign-In
+        try {
+            val webClientId = getString(R.string.web_client_id)
+            firebaseHelper.initGoogleSignIn(this, webClientId)
+            Log.d(TAG, "Google Sign-In initialized with webClientId: $webClientId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing Google Sign-In", e)
+            showToast("Failed to initialize Google Sign-In: ${e.message}")
+        }
         
-        // 注册 Google 登录结果处理
+        // Register Google Sign-In result handler
         googleSignInLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
@@ -78,12 +101,12 @@ class MainActivity : ComponentActivity() {
                 firebaseHelper.handleGoogleSignInResult(
                     data = result.data,
                     onSuccess = {
-                        // 登录成功后导航到主页
-                        // 由于这里不能直接使用 navController，我们可以通过设置一个标志来处理
-                        showToast("Google 登录成功")
+                        // Navigate to home page after successful login
+                        // Since we can't directly use navController here, we can handle it by setting a flag
+                        showToast("Google Sign-In successful")
                     },
                     onError = { error ->
-                        showToast("Google 登录失败: $error")
+                        showToast("Google Sign-In failed: $error")
                     }
                 )
             }
@@ -104,12 +127,16 @@ class MainActivity : ComponentActivity() {
         if (signInIntent != null) {
             googleSignInLauncher.launch(signInIntent)
         } else {
-            showToast("Google 登录初始化失败")
+            showToast("Google Sign-In initialization failed")
         }
     }
     
     private fun showToast(message: String) {
         android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    companion object {
+        private const val TAG = "MainActivity"
     }
 }
 
