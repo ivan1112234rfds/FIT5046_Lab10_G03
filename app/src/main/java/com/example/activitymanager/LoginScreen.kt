@@ -190,27 +190,44 @@ fun LoginScreen(
 
         Button(
             onClick = { 
-                // Use Auth Emulator for Google login testing
+                // 修改模拟器谷歌登录，确保它使用全局Firebase Auth实例
                 coroutineScope.launch(Dispatchers.IO) {
                     try {
-                        // Create a separate Firebase Auth instance for emulator testing, 
-                        // to avoid affecting the main instance
-                        // This prevents interference with normal login/registration functionality
-                        val emulatorAuth = Firebase.auth.apply {
-                            useEmulator("10.0.2.2", 9099)
+                        // 获取全局Firebase Auth实例（不创建新的）
+                        val auth = Firebase.auth
+                        
+                        // 登录前检查状态
+                        firebaseHelper.checkAuthState()
+                        
+                        // 如果需要，临时连接到模拟器
+                        val usingEmulator = true
+                        if (usingEmulator) {
+                            try {
+                                // 注意：这会修改全局Firebase Auth实例
+                                auth.useEmulator("10.0.2.2", 9099)
+                                Log.d("LoginScreen", "Connected to Auth Emulator for Google login")
+                            } catch (e: Exception) {
+                                Log.e("LoginScreen", "Failed to connect to Auth Emulator", e)
+                            }
                         }
-                        Log.d("LoginScreen", "Using separate Auth Emulator instance for Google login")
                         
-                        // 2. Use test account for login
+                        // 使用测试账号进行模拟登录
                         val testEmail = "test@gmail.com"
-                        val testPassword = "admin123456!" // No actual password needed in Auth Emulator
+                        val testPassword = "admin123456!" // 模拟器不需要真实密码
                         
-                        // Use the emulator Auth instance for login
                         try {
-                            emulatorAuth.signInWithEmailAndPassword(testEmail, testPassword)
+                            // 使用全局Firebase Auth实例进行登录
+                            auth.signInWithEmailAndPassword(testEmail, testPassword)
                                 .addOnSuccessListener {
+                                    // 登录成功后，确认currentUser已设置
+                                    val user = auth.currentUser
+                                    Log.d("LoginScreen", "Emulator Google login successful! User: ${user?.uid}")
+                                    
+                                    // 登录后再次检查状态
+                                    firebaseHelper.checkAuthState()
+                                    
                                     CoroutineScope(Dispatchers.Main).launch {
-                                        Toast.makeText(context, "Emulator Google login successful!", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Google login successful!", Toast.LENGTH_SHORT).show()
                                         navController.navigate("HomeScreen") {
                                             popUpTo("login") { inclusive = true }
                                         }
@@ -218,18 +235,18 @@ fun LoginScreen(
                                 }
                                 .addOnFailureListener { e ->
                                     CoroutineScope(Dispatchers.Main).launch {
-                                        Toast.makeText(context, "Emulator Google login failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Google login failed: ${e.message}", Toast.LENGTH_SHORT).show()
                                         Toast.makeText(context, "Please create test user in Auth Emulator", Toast.LENGTH_LONG).show()
                                     }
                                 }
                         } catch (e: Exception) {
                             CoroutineScope(Dispatchers.Main).launch {
-                                Toast.makeText(context, "Emulator login error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Login error: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                         }
                     } catch (e: Exception) {
                         CoroutineScope(Dispatchers.Main).launch {
-                            Toast.makeText(context, "Error setting up emulator: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

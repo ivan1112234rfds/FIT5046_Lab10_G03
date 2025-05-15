@@ -194,6 +194,16 @@ class FirebaseHelper {
         signOut()
     }
     
+    // 添加检查用户登录状态的帮助方法
+    fun checkAuthState() {
+        val user = auth.currentUser
+        if (user != null) {
+            Log.d(TAG, "当前用户已登录: ${user.uid}, email: ${user.email}")
+        } else {
+            Log.d(TAG, "当前没有用户登录")
+        }
+    }
+    
     // Add a separate method for sending email verification
     suspend fun sendEmailVerification(
         onSuccess: () -> Unit,
