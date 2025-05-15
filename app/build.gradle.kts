@@ -63,6 +63,13 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    
+    androidComponents {
+        beforeVariants { variantBuilder ->
+            variantBuilder.enableUnitTest = true
+        }
     }
 }
 
