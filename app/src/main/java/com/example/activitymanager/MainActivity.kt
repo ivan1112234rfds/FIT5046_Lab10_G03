@@ -46,7 +46,10 @@ import com.example.fit5046assignment.ProfileScreen
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.libraries.places.api.Places
+import com.google.firebase.BuildConfig
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -64,6 +67,18 @@ class MainActivity : ComponentActivity() {
                 Log.d(TAG, "Firebase initialized successfully")
             } else {
                 Log.d(TAG, "Firebase already initialized")
+            }
+            
+            // Initialize regular login to use real Firebase service
+            // We don't connect to Auth Emulator here, but only temporarily connect when the Google login button is clicked
+            val useEmulator = false
+            if (useEmulator) {
+                try {
+                    Firebase.auth.useEmulator("10.0.2.2", 9099)
+                    Log.d(TAG, "Using Auth Emulator on 10.0.2.2:9099")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to connect to Auth Emulator", e)
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error initializing Firebase", e)

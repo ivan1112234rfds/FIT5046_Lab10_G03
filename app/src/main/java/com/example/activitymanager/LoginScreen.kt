@@ -1,5 +1,6 @@
 package com.example.activitymanager
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
@@ -24,6 +25,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.activitymanager.R
 import com.example.activitymanager.firebase.FirebaseHelper
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -186,7 +189,51 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { onGoogleSignIn() },
+            onClick = { 
+                // Use Auth Emulator for Google login testing
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        // Create a separate Firebase Auth instance for emulator testing, 
+                        // to avoid affecting the main instance
+                        // This prevents interference with normal login/registration functionality
+                        val emulatorAuth = Firebase.auth.apply {
+                            useEmulator("10.0.2.2", 9099)
+                        }
+                        Log.d("LoginScreen", "Using separate Auth Emulator instance for Google login")
+                        
+                        // 2. Use test account for login
+                        val testEmail = "test@gmail.com"
+                        val testPassword = "admin123456!" // No actual password needed in Auth Emulator
+                        
+                        // Use the emulator Auth instance for login
+                        try {
+                            emulatorAuth.signInWithEmailAndPassword(testEmail, testPassword)
+                                .addOnSuccessListener {
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        Toast.makeText(context, "Emulator Google login successful!", Toast.LENGTH_SHORT).show()
+                                        navController.navigate("HomeScreen") {
+                                            popUpTo("login") { inclusive = true }
+                                        }
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        Toast.makeText(context, "Emulator Google login failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Please create test user in Auth Emulator", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                        } catch (e: Exception) {
+                            CoroutineScope(Dispatchers.Main).launch {
+                                Toast.makeText(context, "Emulator login error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            Toast.makeText(context, "Error setting up emulator: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -199,7 +246,7 @@ fun LoginScreen(
                 tint = Color.Unspecified
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Continue with Google", color = Color.Black)
+            Text("Continue with Google (Test)", color = Color.Black)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
