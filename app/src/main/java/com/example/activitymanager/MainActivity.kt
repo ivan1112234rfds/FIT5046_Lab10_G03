@@ -69,8 +69,9 @@ class MainActivity : ComponentActivity() {
                 Log.d(TAG, "Firebase already initialized")
             }
             
-            // Initialize regular login to use real Firebase service
-            // We don't connect to Auth Emulator here, but only temporarily connect when the Google login button is clicked
+            // 移除emulator连接，我们将在LoginScreen中处理
+            // useEmulator = false 保留注释以提醒未来可能的变更
+            /*
             val useEmulator = false
             if (useEmulator) {
                 try {
@@ -80,6 +81,7 @@ class MainActivity : ComponentActivity() {
                     Log.e(TAG, "Failed to connect to Auth Emulator", e)
                 }
             }
+            */
         } catch (e: Exception) {
             Log.e(TAG, "Error initializing Firebase", e)
             showToast("Failed to initialize Firebase: ${e.message}")
