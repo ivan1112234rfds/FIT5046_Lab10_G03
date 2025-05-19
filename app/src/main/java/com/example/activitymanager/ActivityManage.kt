@@ -110,7 +110,7 @@ fun ActivityManageScreen(navController : NavController) {
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = {  },
+                        onClick = { navController.navigate("create_activity") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp),

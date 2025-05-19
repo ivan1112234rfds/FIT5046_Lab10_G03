@@ -14,12 +14,17 @@ import com.example.activitymanager.mapper.Activity
 import com.google.android.gms.maps.model.LatLng
 import java.text.SimpleDateFormat
 import java.util.*
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.example.activitymanager.firebase.FirebaseHelper
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateActivityScreen(
     onNavigateBack: () -> Unit,
-    onActivityCreated: (Activity) -> Unit
+    onActivityCreated: (Activity) -> Unit,
 ) {
 
     var title by remember { mutableStateOf("") }
@@ -36,18 +41,19 @@ fun CreateActivityScreen(
 
     var isTypeDropdownExpanded by remember { mutableStateOf(false) }
 
-    val activityTypes = listOf(
-        "Sports",
-        "Education",
-        "Entertainment",
-        "Social",
-        "Business",
-        "Culture",
-        "Charity",
-        "Technology",
-        "Health",
-        "Other"
-    )
+    val context = LocalContext.current
+    val firebaseHelper = remember { FirebaseHelper() }
+    var activityTypes by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        val result = firebaseHelper.getActivityTypes()
+        if (result.isNotEmpty()) {
+            activityTypes = result
+        } else {
+            Toast.makeText(context, "Failed to load activity types", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     val datePickerState = rememberDatePickerState()
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -58,6 +64,7 @@ fun CreateActivityScreen(
             location.isNotBlank() && date.isNotBlank() && time.isNotBlank() &&
             organizer.isNotBlank() && duration.isNotBlank()
 
+    // select the date after today
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -65,10 +72,30 @@ fun CreateActivityScreen(
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
                         val selectedDate = Date(it)
-                        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                        date = formatter.format(selectedDate)
+
+                        // Get the time at 00:00 tomorrow
+                        val calendar = Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                            add(Calendar.DAY_OF_YEAR, 1)
+                        }
+                        val tomorrow = calendar.time
+
+                        if (selectedDate.before(tomorrow)) {
+                            // The date is less than tomorrow, indicating an error
+                            Toast.makeText(
+                                context,
+                                "Please choose a date after today",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                            date = formatter.format(selectedDate)
+                            showDatePicker = false
+                        }
                     }
-                    showDatePicker = false
                 }) {
                     Text("Confirm")
                 }
@@ -82,6 +109,8 @@ fun CreateActivityScreen(
             DatePicker(state = datePickerState)
         }
     }
+
+
 
 
     if (showTimePicker) {
@@ -126,9 +155,9 @@ fun CreateActivityScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
 
             OutlinedTextField(
@@ -258,8 +287,9 @@ fun CreateActivityScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
+            val coroutineScope = rememberCoroutineScope()
             Button(
                 onClick = {
                     val newActivity = Activity(
@@ -279,11 +309,23 @@ fun CreateActivityScreen(
                             longitude.toDoubleOrNull() ?: 0.0
                         )
                     )
-                    onActivityCreated(newActivity)
-                    onNavigateBack()
+                    coroutineScope.launch {
+                        firebaseHelper.createActivity(
+                            activity = newActivity,
+                            onSuccess = {
+                                Toast.makeText(context, "Activity posted successfully", Toast.LENGTH_SHORT).show()
+                                onNavigateBack()
+                            },
+                            onError = { error ->
+                                Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                    // onActivityCreated(newActivity)
+                    // onNavigateBack()
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = isFormValid
+                enabled = true
             ) {
                 Text("Post")
             }

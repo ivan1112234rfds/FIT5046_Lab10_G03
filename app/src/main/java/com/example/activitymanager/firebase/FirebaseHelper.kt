@@ -16,6 +16,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
+import com.example.activitymanager.mapper.Activity as ActivityModel
+import com.example.activitymanager.dao.UserDao
+import com.example.activitymanager.roomEntity.UserEntity
 
 class FirebaseHelper {
     private val auth: FirebaseAuth = Firebase.auth
@@ -26,6 +29,11 @@ class FirebaseHelper {
     
     // Users collection reference
     private val usersCollection = db.collection("users")
+
+    // Activities collection reference
+    private val AcitvitiesCollection = db.collection("activities")
+
+    private val TypeCollection = db.collection("activitytypes")
     
     // Initialize Google sign-in
     fun initGoogleSignIn(context: Context, webClientId: String) {
@@ -128,12 +136,18 @@ class FirebaseHelper {
     suspend fun loginUser(
         email: String,
         password: String,
+        userDao: UserDao,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
         try {
             auth.signInWithEmailAndPassword(email, password).await()
+            val uid = auth.currentUser?.uid
             Log.d(TAG, "Login successful: ${auth.currentUser?.uid}")
+            if (uid != null) {
+                val user = UserEntity(uid = uid, email = email)
+                userDao.insertUser(user)
+            }
             onSuccess()
         } catch (e: Exception) {
             Log.e(TAG, "Login failed", e)
@@ -227,5 +241,32 @@ class FirebaseHelper {
     companion object {
         private const val TAG = "FirebaseHelper"
         const val RC_SIGN_IN = 9001 // Google sign-in request code
+    }
+
+    // Post Activity
+    suspend fun createActivity(
+        activity: ActivityModel,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            AcitvitiesCollection.document().set(activity).await()
+            Log.d(TAG, "Activity created successfully")
+            onSuccess()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create activity", e)
+            onError(e.message ?: "Unknown error occurred")
+        }
+    }
+
+    // Get all activity types from data collection in firebase
+    suspend fun getActivityTypes(): List<String> {
+        return try {
+            val snapshot = TypeCollection.orderBy("sort").get().await()
+            snapshot.documents.mapNotNull { it.getString("name") }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch activity types", e)
+            emptyList()
+        }
     }
 } 

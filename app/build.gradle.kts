@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+    id("kotlin-kapt")
 }
 dependencies {
     // ... Other dependencies
@@ -25,6 +26,11 @@ dependencies {
     
     // Dependencies required for Google Sign-in
     implementation("com.google.android.gms:play-services-auth:20.7.0")
+
+    // Room components
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    kapt(libs.room.compiler)
 
     implementation("androidx.compose.material:material-icons-extended")
     implementation("io.coil-kt:coil-compose:2.4.0")
