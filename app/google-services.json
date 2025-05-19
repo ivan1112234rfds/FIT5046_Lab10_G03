@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "619915258740",
+    "project_id": "fit5046-lab10-g03",
+    "storage_bucket": "fit5046-lab10-g03.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:619915258740:android:4e488f93a7cd54868c9a21",
+        "android_client_info": {
+          "package_name": "com.example.activitymanager"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "619915258740-dq30oedntm6fge19kktj74mpe7p6bdnd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.activitymanager",
+            "certificate_hash": "d76c2e3d137235fbd5a8b2afa5e198690e555704"
+          }
+        },
+        {
+          "client_id": "619915258740-dv56d3anbll7rigl0uilmvvsn6d3bi2h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC92gR1CNRzVBwgN9Gxyyd0F5oXeaxPHP0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "619915258740-dv56d3anbll7rigl0uilmvvsn6d3bi2h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
