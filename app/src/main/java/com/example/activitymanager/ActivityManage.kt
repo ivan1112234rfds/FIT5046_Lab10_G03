@@ -6,10 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,13 +25,30 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.assignmentcode.BottomNavigationBar
-
+import androidx.compose.ui.platform.LocalContext
+import com.example.activitymanager.firebase.FirebaseHelper
+import com.example.activitymanager.mapper.Activity
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.*
+import androidx.compose.foundation.lazy.items
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun ActivityManageScreen(navController : NavController) {
+    val context = LocalContext.current
+    val firebaseHelper = remember { FirebaseHelper() }
+
     val tabs = listOf("Active", "Closed")
     var selectedTabIndex by remember { mutableStateOf(0) }
     var selectedTab by remember { mutableStateOf("Home") }
+    var activityList by remember { mutableStateOf<List<Activity>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        val currentUser = firebaseHelper.getCurrentUser()
+        val currentUserId = currentUser?.uid ?: ""
+        activityList = firebaseHelper.getActivities(currentUserId)
+    }
 
     Scaffold(
         bottomBar = {
@@ -72,45 +85,78 @@ fun ActivityManageScreen(navController : NavController) {
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+            val formatter = SimpleDateFormat("dd MMM yyyy 'at' HH:mm:ss z", Locale.ENGLISH)
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item {
+                items(activityList) { activity ->
+                    val formattedDate = activity.date?.let { formatter.format(it) } ?: ""
                     ActivityCard(
-                        title = "Mornington Hiking",
-                        author = "Roy Marsh",
-                        rating = 4.9,
-                        duration = "2h 30mins",
-                        participants = 1245,
-                        liked = true,
-                        type = "Hiking"
-                    )
-                }
-                item {
-                    ActivityCard(
-                        title = "Clayton Movie",
-                        author = "Annie Chandler",
-                        rating = 4.2,
-                        duration = "3h 30mins",
-                        participants = 2182,
+                        title = activity.title ?: "",
+                        author = activity.organizer ?: "",
+                        rating = activity.rating ?: 0.0,
+                        duration = activity.duration ?: "",
+                        participants = activity.participants ?: 0,
                         liked = false,
-                        type = "Movie"
+                        type = activity.type ?: "",
+                        onEditClick = {
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("id", activity.id ?: "")
+                                set("title", activity.title ?: "")
+                                set("description", activity.description ?: "")
+                                set("location", activity.location ?: "")
+                                set("date", formattedDate)
+                                set("duration", activity.duration ?: "")
+                                set("organizer", activity.organizer ?: "")
+                                set("type", activity.type ?: "")
+                                // set("participants", activity.participants ?: 0)
+                                set("participants", activity.participants?.toString() ?: "0")
+                                // set("coordinates", activity.coordinates ?: "")
+                                set("coordinates", mapOf(
+                                    "latitude" to activity.coordinates?.latitude,
+                                    "longitude" to activity.coordinates?.longitude
+                                ))
+                            }
+                            navController.navigate("edit_activity")
+                        }
                     )
                 }
-                item {
-                    ActivityCard(
-                        title = "Board Game",
-                        author = "Annie Chandler",
-                        rating = 4.2,
-                        duration = "3h 30mins",
-                        participants = 2182,
-                        liked = false,
-                        type = "game"
-                    )
-                }
+//                item {
+//                    ActivityCard(
+//                        title = "Mornington Hiking",
+//                        author = "Roy Marsh",
+//                        rating = 4.9,
+//                        duration = "2h 30mins",
+//                        participants = 1245,
+//                        liked = true,
+//                        type = "Hiking"
+//                    )
+//                }
+//                item {
+//                    ActivityCard(
+//                        title = "Clayton Movie",
+//                        author = "Annie Chandler",
+//                        rating = 4.2,
+//                        duration = "3h 30mins",
+//                        participants = 2182,
+//                        liked = false,
+//                        type = "Movie"
+//                    )
+//                }
+//                item {
+//                    ActivityCard(
+//                        title = "Board Game",
+//                        author = "Annie Chandler",
+//                        rating = 4.2,
+//                        duration = "3h 30mins",
+//                        participants = 2182,
+//                        liked = false,
+//                        type = "game"
+//                    )
+//                }
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = {  },
+                        onClick = { navController.navigate("create_activity") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp),

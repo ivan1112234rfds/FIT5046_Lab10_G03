@@ -16,6 +16,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
+import com.example.activitymanager.mapper.Activity as ActivityModel
+import com.example.activitymanager.dao.UserDao
+import com.example.activitymanager.roomEntity.UserEntity
+import java.util.Date
 
 class FirebaseHelper {
     private val auth: FirebaseAuth = Firebase.auth
@@ -26,6 +30,11 @@ class FirebaseHelper {
     
     // Users collection reference
     private val usersCollection = db.collection("users")
+
+    // Activities collection reference
+    private val AcitvitiesCollection = db.collection("activities")
+
+    private val TypeCollection = db.collection("activitytypes")
     
     // Initialize Google sign-in
     fun initGoogleSignIn(context: Context, webClientId: String) {
@@ -128,12 +137,18 @@ class FirebaseHelper {
     suspend fun loginUser(
         email: String,
         password: String,
+        userDao: UserDao,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
         try {
             auth.signInWithEmailAndPassword(email, password).await()
+            val uid = auth.currentUser?.uid
             Log.d(TAG, "Login successful: ${auth.currentUser?.uid}")
+            if (uid != null) {
+                val user = UserEntity(uid = uid, email = email)
+                userDao.insertUser(user)
+            }
             onSuccess()
         } catch (e: Exception) {
             Log.e(TAG, "Login failed", e)
@@ -227,5 +242,149 @@ class FirebaseHelper {
     companion object {
         private const val TAG = "FirebaseHelper"
         const val RC_SIGN_IN = 9001 // Google sign-in request code
+    }
+
+    // Post Activity
+    suspend fun createActivity(
+        activity: ActivityModel,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            AcitvitiesCollection.document().set(activity).await()
+            Log.d(TAG, "Activity created successfully")
+            onSuccess()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create activity", e)
+            onError(e.message ?: "Unknown error occurred")
+        }
+    }
+
+    // Edit Activity
+    suspend fun updateActivityByFieldId(
+        activity: ActivityModel,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            val querySnapshot = AcitvitiesCollection
+                .whereEqualTo("id", activity.id)
+                .get()
+                .await()
+
+            if (!querySnapshot.isEmpty) {
+                val docRef = querySnapshot.documents[0].reference
+                docRef.set(activity).await()
+                Log.d(TAG, "Activity updated successfully")
+                onSuccess()
+            } else {
+                onError("Activity with id ${activity.id} not found")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update activity", e)
+            onError(e.message ?: "Unknown error occurred")
+        }
+    }
+
+    // Get all activity types from data collection in firebase
+    suspend fun getActivityTypes(): List<String> {
+        return try {
+            val snapshot = TypeCollection.orderBy("sort").get().await()
+            snapshot.documents.mapNotNull { it.getString("name") }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch activity types", e)
+            emptyList()
+        }
+    }
+
+    // get user information
+    suspend fun getUserinfoByUid(uid: String): User? {
+        return try {
+            val snapshot = usersCollection
+                .whereEqualTo("uid", uid)
+                .get()
+                .await()
+
+            snapshot.documents.firstOrNull()?.toObject(User::class.java)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching user", e)
+            null
+        }
+    }
+
+    // get activity list
+    suspend fun getActivities(
+        uid: String? = null,
+        type: String? = null,
+        startDate: Date? = null,
+        endDate: Date? = null
+    ): List<ActivityModel> {
+        return try {
+            var query = AcitvitiesCollection as com.google.firebase.firestore.Query
+
+            if (uid != null) {
+                query = query.whereEqualTo("uid", uid)
+            }
+
+            if (type != null) {
+                query = query.whereEqualTo("type", type)
+            }
+
+            if (startDate != null) {
+                query = query.whereGreaterThanOrEqualTo("date", startDate)
+            }
+
+            if (endDate != null) {
+                query = query.whereLessThanOrEqualTo("date", endDate)
+            }
+
+            val snapshot = query.get().await()
+
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    val id = doc.getString("id") ?: ""
+                    val title = doc.getString("title") ?: ""
+                    val description = doc.getString("description") ?: ""
+                    val date = doc.getDate("date") ?: Date()
+                    val location = doc.getString("location") ?: ""
+                    val organizer = doc.getString("organizer") ?: ""
+                    val uidField = doc.getString("uid") ?: ""
+                    val rating = doc.getDouble("rating") ?: 0.0
+                    val duration = doc.getString("duration") ?: ""
+                    val typeField = doc.getString("type") ?: ""
+                    val participants = (doc.getLong("participants") ?: 0).toInt()
+                    val isFavorite = doc.getBoolean("isFavorite") ?: false
+
+                    // 手动构造 LatLng（如果 Firestore 是 GeoPoint 类型）
+                    val coordinatesMap = doc.get("coordinates") as? Map<*, *>
+                    val lat = coordinatesMap?.get("latitude") as? Double ?: 0.0
+                    val lng = coordinatesMap?.get("longitude") as? Double ?: 0.0
+                    val coordinates = com.google.android.gms.maps.model.LatLng(lat, lng)
+
+                    ActivityModel(
+                        id = id,
+                        title = title,
+                        description = description,
+                        date = date,
+                        location = location,
+                        organizer = organizer,
+                        uid = uidField,
+                        rating = rating,
+                        duration = duration,
+                        type = typeField,
+                        participants = participants,
+                        isFavorite = isFavorite,
+                        coordinates = coordinates
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse activity document", e)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching activities", e)
+            emptyList()
+        }
     }
 } 

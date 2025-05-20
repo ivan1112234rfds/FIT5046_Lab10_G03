@@ -10,6 +10,7 @@ data class Activity(
     val date: Date,
     val location: String,
     val organizer: String,
+    val uid: String,
     val rating: Double,
     val duration: String,
     val type: String,

@@ -30,6 +30,7 @@ import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.example.activitymanager.AppDatabase
 
 @Composable
 fun LoginScreen(
@@ -138,11 +139,13 @@ fun LoginScreen(
                 if (validateInputs(email, password)) {
                     isLoading = true
                     errorMessage = null
+                    val userDao = AppDatabase.getInstance(context).userDao()
                     
                     coroutineScope.launch(Dispatchers.IO) {
                         firebaseHelper.loginUser(
                             email = email,
                             password = password,
+                            userDao = userDao,
                             onSuccess = {
                                 isLoading = false
                                 // Show toast on main thread
