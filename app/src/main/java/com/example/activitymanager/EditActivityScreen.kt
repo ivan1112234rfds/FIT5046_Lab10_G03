@@ -18,30 +18,74 @@ import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import com.example.activitymanager.firebase.FirebaseHelper
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import com.example.activitymanager.AppDatabase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateActivityScreen(
+fun EditActivityScreen(
+    navController: NavController,
     onNavigateBack: () -> Unit,
     onActivityCreated: (Activity) -> Unit,
 ) {
 
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("") }
-    var time by remember { mutableStateOf("") }
-    var duration by remember { mutableStateOf("") }
-    var organizer by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("") }
-    var participants by remember { mutableStateOf("") }
-    var latitude by remember { mutableStateOf("0.0") }
-    var longitude by remember { mutableStateOf("0.0") }
+    val backStack = navController.previousBackStackEntry?.savedStateHandle
+
+    val id by remember { mutableStateOf(backStack?.get<String>("id") ?: "") }
+    var title by remember { mutableStateOf(backStack?.get<String>("title") ?: "") }
+    var description by remember { mutableStateOf(backStack?.get<String>("description") ?: "") }
+    var location by remember { mutableStateOf(backStack?.get<String>("location") ?: "") }
+    val rawDateTime = backStack?.get<String>("date") ?: ""
+    var duration by remember { mutableStateOf(backStack?.get<String>("duration") ?: "") }
+    var organizer by remember { mutableStateOf(backStack?.get<String>("organizer") ?: "") }
+    var type by remember { mutableStateOf(backStack?.get<String>("type") ?: "") }
+    var participants by remember { mutableStateOf(backStack?.get<String>("participants") ?: "") }
+    val coordinatesMap = backStack?.get<Map<String, Any>>("coordinates")
+    var latitude by remember { mutableStateOf((coordinatesMap?.get("latitude") as? Double)?.toString() ?: "0.0") }
+    var longitude by remember { mutableStateOf((coordinatesMap?.get("longitude") as? Double)?.toString() ?: "0.0") }
     var currentUserId by remember { mutableStateOf("") }
 
     var isTypeDropdownExpanded by remember { mutableStateOf(false) }
+
+    val parsedDate = try {
+        SimpleDateFormat("dd MMM yyyy 'at' HH:mm:ss z", Locale.ENGLISH).parse(rawDateTime)
+    } catch (e: Exception) {
+        null
+    }
+
+    var date by remember {
+        mutableStateOf(
+            parsedDate?.let {
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(it)
+            } ?: ""
+        )
+    }
+
+    var time by remember {
+        mutableStateOf(
+            parsedDate?.let {
+                SimpleDateFormat("HH:mm", Locale.getDefault()).format(it)
+            } ?: ""
+        )
+    }
+
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = parsedDate?.time
+    )
+
+    val calendar = Calendar.getInstance()
+    calendar.time = parsedDate ?: Date()
+
+    val timePickerState = remember {
+        TimePickerState(
+            initialHour = calendar.get(Calendar.HOUR_OF_DAY),
+            initialMinute = calendar.get(Calendar.MINUTE),
+            is24Hour = true
+        )
+    }
+
+
 
     val context = LocalContext.current
     val firebaseHelper = remember { FirebaseHelper() }
@@ -65,10 +109,10 @@ fun CreateActivityScreen(
         organizer = userInfo?.username ?: ""
     }
 
-    val datePickerState = rememberDatePickerState()
+    // val datePickerState = rememberDatePickerState()
     var showDatePicker by remember { mutableStateOf(false) }
 
-    val timePickerState = rememberTimePickerState()
+    // val timePickerState = rememberTimePickerState()
     var showTimePicker by remember { mutableStateOf(false) }
 
     val isFormValid = title.isNotBlank() && description.isNotBlank() &&
@@ -153,7 +197,7 @@ fun CreateActivityScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create a New Activity") },
+                title = { Text("Edit Activity Detail") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -304,7 +348,7 @@ fun CreateActivityScreen(
             Button(
                 onClick = {
                     val newActivity = Activity(
-                        id = UUID.randomUUID().toString(),
+                        id = id,
                         title = title,
                         description = description,
                         date = parseDateTime(date, time),
@@ -322,10 +366,10 @@ fun CreateActivityScreen(
                         )
                     )
                     coroutineScope.launch {
-                        firebaseHelper.createActivity(
+                        firebaseHelper.updateActivityByFieldId(
                             activity = newActivity,
                             onSuccess = {
-                                Toast.makeText(context, "Activity posted successfully", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Edit activity successfully", Toast.LENGTH_SHORT).show()
                                 onNavigateBack()
                             },
                             onError = { error ->
@@ -333,13 +377,11 @@ fun CreateActivityScreen(
                             }
                         )
                     }
-                    // onActivityCreated(newActivity)
-                    // onNavigateBack()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = true
             ) {
-                Text("Post")
+                Text("Edit")
             }
         }
     }

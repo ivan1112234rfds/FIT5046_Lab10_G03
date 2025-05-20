@@ -1,6 +1,7 @@
 package com.example.activitymanager
 
 import CreateActivityScreen
+import EditActivityScreen
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -223,6 +224,13 @@ fun ActivityApp(
         composable("Profile") {
             ProfileScreen(navController)
         }
+        composable("edit_activity") {
+            EditActivityScreen(
+                navController,
+                onNavigateBack = { navController.popBackStack() },
+                onActivityCreated = { }
+            )
+        }
 
     }
 }
@@ -245,6 +253,7 @@ fun createMockActivities(): List<Activity> {
             date = cal.time,
             location = "Art Studio 42, 123 Creative Avenue, San Francisco",
             organizer = "Roy Marsh",
+            uid = "",
             rating = 4.9,
             duration = "2h 30mins",
             participants = 1245,
@@ -263,6 +272,7 @@ fun createMockActivities(): List<Activity> {
             date = cal.time,
             location = "Online",
             organizer = "Annie Chandler",
+            uid = "",
             rating = 4.2,
             duration = "3h 30mins",
             participants = 2182,
