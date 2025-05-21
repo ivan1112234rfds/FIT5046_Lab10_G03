@@ -1,6 +1,7 @@
 package com.example.activitymanager
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,23 +14,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.compose.material3.Text
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Favorite
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import com.example.activitymanager.firebase.FirebaseHelper
+import com.example.activitymanager.mapper.Activity
 import com.example.assignmentcode.BottomNavigationBar
-import java.text.SimpleDateFormat
-import java.util.Locale
+
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -37,12 +27,20 @@ import java.util.Locale
 fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Unit) {
     var selectedCategory by remember { mutableStateOf("All") }
 
-    val activities = remember { createMockActivities() }
+    val firebaseHelper = FirebaseHelper()
+    var activities by remember { mutableStateOf<List<Activity>>(emptyList()) }
     val filteredActivities = activities.filter {
         (selectedCategory == "All" || it.type == selectedCategory)
     }
     var selectedTab by remember { mutableStateOf("Home") }
 
+    LaunchedEffect(Unit) {
+        try {
+            activities = firebaseHelper.getActivities()
+        } catch (e: Exception) {
+            Log.e("ActivityScreen", "Error loading activities", e)
+        }
+    }
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
@@ -126,4 +124,6 @@ fun FilterChipsRow(
         }
     }
 }
+
+
 

@@ -19,6 +19,10 @@ import kotlinx.coroutines.tasks.await
 import com.example.activitymanager.mapper.Activity as ActivityModel
 import com.example.activitymanager.dao.UserDao
 import com.example.activitymanager.roomEntity.UserEntity
+import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.firestore.FieldValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Date
 
 class FirebaseHelper {
@@ -208,8 +212,7 @@ class FirebaseHelper {
         googleSignInClient?.signOut()
         signOut()
     }
-    
-    // 添加检查用户登录状态的帮助方法
+
     fun checkAuthState() {
         val user = auth.currentUser
         if (user != null) {
@@ -313,6 +316,61 @@ class FirebaseHelper {
         }
     }
 
+    suspend fun registerForActivity(
+        activityId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            Log.d("FirebaseHelper", "Starting registration for activity ID: '$activityId'")
+            val db = FirebaseFirestore.getInstance()
+
+            // 列出所有活动以检查数据库连接
+            val allActivities = db.collection("activities").get().await()
+            Log.d("FirebaseHelper", "Total activities in database: ${allActivities.size()}")
+            Log.d("FirebaseHelper", "Available activity IDs: ${allActivities.documents.map { it.id }}")
+
+            // 首先检查活动是否存在
+            val activityDoc = db.collection("activities").document(activityId).get().await()
+
+            if (!activityDoc.exists()) {
+                Log.e("FirebaseHelper", "Activity does not exist: '$activityId'")
+                Log.e("FirebaseHelper", "Document data: ${activityDoc.data}")
+                Log.e("FirebaseHelper", "Document ID from snapshot: ${activityDoc.id}")
+                onError("Activity not found")
+                return
+            }
+
+            Log.d("FirebaseHelper", "Activity exists, updating participants")
+
+            // 继续执行注册逻辑...
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Exception during registration", e)
+            onError(e.message ?: "Failed to register for activity")
+        }
+    }
+
+    suspend fun checkIfUserRegistered(
+        activityId: String,
+        userId: String
+    ): Boolean {
+        try {
+            val db = FirebaseFirestore.getInstance()
+
+            val activityDoc = db.collection("activities").document(activityId).get().await()
+            val participants = activityDoc.get("participantsIDs") as? List<String> ?: emptyList()
+            if (participants.contains(userId)) {
+                return true
+            }
+            return false
+        } catch (e: Exception) {
+            println("Error checking registration status: ${e.message}")
+            return false
+        }
+    }
+
+
     // get activity list
     suspend fun getActivities(
         uid: String? = null,
@@ -354,9 +412,9 @@ class FirebaseHelper {
                     val duration = doc.getString("duration") ?: ""
                     val typeField = doc.getString("type") ?: ""
                     val participants = (doc.getLong("participants") ?: 0).toInt()
+                    val participantsIDs = (doc.get("participantsIDs") as? List<String>) ?: emptyList()
                     val isFavorite = doc.getBoolean("isFavorite") ?: false
 
-                    // 手动构造 LatLng（如果 Firestore 是 GeoPoint 类型）
                     val coordinatesMap = doc.get("coordinates") as? Map<*, *>
                     val lat = coordinatesMap?.get("latitude") as? Double ?: 0.0
                     val lng = coordinatesMap?.get("longitude") as? Double ?: 0.0
@@ -374,6 +432,7 @@ class FirebaseHelper {
                         duration = duration,
                         type = typeField,
                         participants = participants,
+                        participantsIDs = participantsIDs,
                         isFavorite = isFavorite,
                         coordinates = coordinates
                     )
@@ -385,6 +444,29 @@ class FirebaseHelper {
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching activities", e)
             emptyList()
+        }
+    }
+
+    suspend fun deleteActivity(
+        activityId: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            val currentUser = auth.currentUser
+            if (currentUser == null) {
+                onError("User not authenticated")
+                return
+            }
+            withContext(Dispatchers.IO) {
+                db.collection("activities")
+                    .document(activityId)
+                    .delete()
+                    .await()
+            }
+            onSuccess()
+        } catch (e: Exception) {
+            onError(e.message ?: "Unknown error occurred")
         }
     }
 } 

@@ -41,6 +41,7 @@ fun EditActivityScreen(
     var organizer by remember { mutableStateOf(backStack?.get<String>("organizer") ?: "") }
     var type by remember { mutableStateOf(backStack?.get<String>("type") ?: "") }
     var participants by remember { mutableStateOf(backStack?.get<String>("participants") ?: "") }
+    var participantsIDs by remember { mutableStateOf<List<String>>(emptyList()) }
     val coordinatesMap = backStack?.get<Map<String, Any>>("coordinates")
     var latitude by remember { mutableStateOf((coordinatesMap?.get("latitude") as? Double)?.toString() ?: "0.0") }
     var longitude by remember { mutableStateOf((coordinatesMap?.get("longitude") as? Double)?.toString() ?: "0.0") }
@@ -359,6 +360,7 @@ fun EditActivityScreen(
                         type = type,
                         duration = duration,
                         participants = participants.toIntOrNull() ?: 0,
+                        participantsIDs = participantsIDs,
                         isFavorite = false,
                         coordinates = LatLng(
                             latitude.toDoubleOrNull() ?: 0.0,
