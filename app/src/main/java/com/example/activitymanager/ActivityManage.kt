@@ -161,7 +161,8 @@ fun ActivityManageScreen(navController : NavController) {
         bottomBar = {
             BottomNavigationBar(
                 selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it }
+                onTabSelected = { selectedTab = it },
+                navController = navController
             )
         }
     ) { innerPadding ->
