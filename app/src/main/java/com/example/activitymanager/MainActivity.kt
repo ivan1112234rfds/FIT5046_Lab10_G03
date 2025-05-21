@@ -42,13 +42,19 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.activitymanager.firebase.FirebaseHelper
+import com.example.activitymanager.firebase.AuthManager
 import com.example.activitymanager.mapper.Activity
-import com.example.assignmentcode.ui.theme.AssignmentCodeTheme
+import com.example.activitymanager.ui.theme.ActivityManagerTheme
 import com.example.activitymanager.LoginScreen
 import com.example.activitymanager.RegisterScreen
-import com.example.assignmentcode.BottomNavigationBar
-import com.example.fit5046assignment.HomeScreen
-import com.example.fit5046assignment.ProfileScreen
+import com.example.activitymanager.HomeScreen
+import com.example.activitymanager.ProfileScreen
+import com.example.activitymanager.ui.ProtectedRoute
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.libraries.places.api.Places
@@ -65,6 +71,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // 初始化AuthManager
+        AuthManager.initialize()
         
         // Initialize Firebase
         try {
@@ -111,8 +120,8 @@ class MainActivity : ComponentActivity() {
                 firebaseHelper.handleGoogleSignInResult(
                     data = result.data,
                     onSuccess = {
-                        // Navigate to home page after successful login
-                        // Since we can't directly use navController here, we can handle it by setting a flag
+                        // 更新认证状态
+                        AuthManager.updateAuthState()
                         showToast("Google Sign-In successful")
                     },
                     onError = { error ->
@@ -123,7 +132,7 @@ class MainActivity : ComponentActivity() {
         }
         
         setContent {
-            AssignmentCodeTheme {
+            ActivityManagerTheme {
                 ActivityApp(
                     firebaseHelper = firebaseHelper,
                     onGoogleSignIn = { startGoogleSignIn() }
@@ -166,6 +175,7 @@ fun navigateToTab(navController: NavController, route: String) {
         restoreState = true
     }
 }
+
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun ActivityApp(
@@ -173,15 +183,30 @@ fun ActivityApp(
     onGoogleSignIn: () -> Unit
 ) {
     val navController = rememberNavController()
+    // 从AuthManager获取登录状态
+    val isLoggedIn by AuthManager.isLoggedIn
+
+    // 登录提示对话框状态
+    var showLoginDialog by remember { mutableStateOf(false) }
+    var loginRedirectTarget by remember { mutableStateOf<String?>(null) }
 
     NavHost(navController = navController, startDestination = "Home") {
         composable("activities") {
-            MyActivitiesScreen(
-                navController = navController,
-                onActivityClick = { activityId ->
-                    navController.navigate("activity_details/$activityId")
+            ProtectedRoute(
+                isLoggedIn = isLoggedIn,
+                onNotLoggedIn = {
+                    // 未登录时的处理
+                    navController.popBackStack()
+                    navController.navigate("Home")
                 }
-            )
+            ) {
+                MyActivitiesScreen(
+                    navController = navController,
+                    onActivityClick = { activityId ->
+                        navController.navigate("activity_details/$activityId")
+                    }
+                )
+            }
         }
         composable(
             route = "activity_details/{activityId}",
@@ -194,15 +219,25 @@ fun ActivityApp(
             )
         }
         composable("create_activity") {
-            CreateActivityScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onActivityCreated = {
+            ProtectedRoute(
+                isLoggedIn = isLoggedIn,
+                onNotLoggedIn = {
+                    // 未登录时的处理
+                    navController.popBackStack()
+                    navController.navigate("Home")
                 }
-            )
+            ) {
+                CreateActivityScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onActivityCreated = {}
+                )
+            }
         }
-        composable("activityList") { ActivityScreen(navController, onActivityClick = { activityId ->
-            navController.navigate("activity_details/$activityId")
-        },) }
+        composable("activityList") { 
+            ActivityScreen(navController, onActivityClick = { activityId ->
+                navController.navigate("activity_details/$activityId")
+            })
+        }
         composable("home") {
             HomeScreen(navController)
         }
@@ -217,7 +252,16 @@ fun ActivityApp(
             com.example.activitymanager.RegisterScreen(navController)
         }
         composable("Manage") {
-            ActivityManageScreen(navController)
+            ProtectedRoute(
+                isLoggedIn = isLoggedIn,
+                onNotLoggedIn = {
+                    // 未登录时的处理
+                    navController.popBackStack()
+                    navController.navigate("Home")
+                }
+            ) {
+                ActivityManageScreen(navController)
+            }
         }
         composable("Dashboard") {
             DashboardScreen(navController)
@@ -232,19 +276,47 @@ fun ActivityApp(
             ProfileScreen(navController)
         }
         composable("edit_activity") {
-            EditActivityScreen(
-                navController,
-                onNavigateBack = { navController.popBackStack() },
-                onActivityCreated = { }
-            )
+            ProtectedRoute(
+                isLoggedIn = isLoggedIn,
+                onNotLoggedIn = {
+                    // 未登录时的处理
+                    navController.popBackStack()
+                    navController.navigate("Home")
+                }
+            ) {
+                EditActivityScreen(
+                    navController,
+                    onNavigateBack = { navController.popBackStack() },
+                    onActivityCreated = { }
+                )
+            }
         }
-
+    }
+    
+    // 登录提示对话框
+    if (showLoginDialog) {
+        AlertDialog(
+            onDismissRequest = { showLoginDialog = false },
+            title = { Text("Login Required") },
+            text = { Text("You need to be logged in to access this feature.") },
+            confirmButton = {
+                Button(onClick = { 
+                    showLoginDialog = false
+                    navController.navigate("login")
+                }) {
+                    Text("Login")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { 
+                    showLoginDialog = false 
+                }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
-
-
-
-
 
 fun createMockActivities(): List<Activity> {
     val cal = Calendar.getInstance()
@@ -285,36 +357,9 @@ fun createMockActivities(): List<Activity> {
             participants = 2182,
             participantsIDs = emptyList(),
             type = "Hiking",
-            coordinates = LatLng(0.0, 0.0)  // Online course
+            coordinates = LatLng(0.0, 0.0)
         )
     )
     return mockActivities
-}
-
-@Composable
-fun BottomNavItem(
-    label: String,
-    icon: ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (selected) Color(0xFF6366F1) else Color.Gray
-        )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            color = if (selected) Color(0xFF6366F1) else Color.Gray
-        )
-    }
 }
 

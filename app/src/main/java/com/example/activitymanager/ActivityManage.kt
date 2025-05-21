@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
-import com.example.assignmentcode.BottomNavigationBar
+import com.example.activitymanager.BottomNavigationBar
 import androidx.compose.ui.platform.LocalContext
 import com.example.activitymanager.firebase.FirebaseHelper
 import com.example.activitymanager.mapper.Activity
@@ -39,6 +39,7 @@ import androidx.compose.runtime.*
 import androidx.compose.foundation.lazy.items
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.example.activitymanager.ui.theme.ActivityManagerTheme
 import com.google.android.gms.maps.model.LatLng
 import java.util.UUID
 
