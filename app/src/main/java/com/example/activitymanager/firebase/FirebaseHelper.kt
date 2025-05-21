@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.example.activitymanager.model.User
+import com.example.activitymanager.model.UserPreferences
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -523,6 +524,60 @@ class FirebaseHelper {
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching activities", e)
             emptyList()
+        }
+    }
+    
+    // 更新用户数据
+    suspend fun updateUserData(
+        user: User,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            usersCollection.document(user.uid).set(user).await()
+            Log.d(TAG, "User data updated successfully: ${user.uid}")
+            onSuccess()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update user data", e)
+            onError(e.message ?: "Failed to update user data")
+        }
+    }
+
+    // 用户偏好设置集合引用
+    private val userPreferencesCollection = db.collection("userPreferences")
+    
+    // 获取用户偏好设置
+    suspend fun getUserPreferences(
+        uid: String,
+        onSuccess: (UserPreferences) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            val snapshot = userPreferencesCollection.document(uid).get().await()
+            val preferences = snapshot.toObject(UserPreferences::class.java) 
+                ?: UserPreferences(uid = uid)
+            
+            Log.d(TAG, "User preferences fetched: $preferences")
+            onSuccess(preferences)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get user preferences", e)
+            onError(e.message ?: "Failed to get user preferences")
+        }
+    }
+
+    // 更新用户偏好设置
+    suspend fun updateUserPreferences(
+        preferences: UserPreferences,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            userPreferencesCollection.document(preferences.uid).set(preferences).await()
+            Log.d(TAG, "User preferences updated successfully: ${preferences.uid}")
+            onSuccess()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update user preferences", e)
+            onError(e.message ?: "Failed to update user preferences")
         }
     }
 

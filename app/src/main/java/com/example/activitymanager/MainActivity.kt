@@ -43,9 +43,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.activitymanager.firebase.FirebaseHelper
 import com.example.activitymanager.mapper.Activity
-import com.example.assignmentcode.ui.theme.AssignmentCodeTheme
+import com.example.activitymanager.ui.theme.ActivityManagerTheme
 import com.example.activitymanager.LoginScreen
 import com.example.activitymanager.RegisterScreen
+import com.example.activitymanager.HomeScreen
+import com.example.activitymanager.ProfileScreen
 import com.example.assignmentcode.BottomNavigationBar
 import com.example.fit5046assignment.HomeScreen
 import com.example.fit5046assignment.ProfileScreen
@@ -123,7 +125,7 @@ class MainActivity : ComponentActivity() {
         }
         
         setContent {
-            AssignmentCodeTheme {
+            ActivityManagerTheme {
                 ActivityApp(
                     firebaseHelper = firebaseHelper,
                     onGoogleSignIn = { startGoogleSignIn() }

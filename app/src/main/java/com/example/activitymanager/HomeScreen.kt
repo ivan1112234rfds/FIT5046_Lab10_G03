@@ -1,4 +1,4 @@
-package com.example.fit5046assignment
+package com.example.activitymanager
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,7 +37,7 @@ import androidx.navigation.NavController
 import com.example.activitymanager.mapper.Activity
 import com.example.activitymanager.R
 import com.example.activitymanager.firebase.FirebaseHelper
-import com.example.assignmentcode.BottomNavigationBar
+import com.example.activitymanager.BottomNavigationBar
 import com.example.activitymanager.AppDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -46,22 +46,14 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
-    // 创建状态
     var activities by remember { mutableStateOf<List<Activity>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableStateOf("Home") }
-    
-    // 添加用户名状态
     var username by remember { mutableStateOf("") }
-    
-    // 获取上下文
     val context = LocalContext.current
-    
-    // 获取FirebaseHelper实例
     val firebaseHelper = remember { FirebaseHelper() }
-    
-    // 获取用户名
+
     LaunchedEffect(Unit) {
         try {
             val userDao = AppDatabase.getInstance(context).userDao()
@@ -69,11 +61,10 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                 userDao.getCurrentUser()
             }
             
-            // 如果本地有用户数据，使用本地数据
             if (currentUser != null && currentUser.username.isNotEmpty()) {
                 username = currentUser.username
             } 
-            // 如果本地没有用户名，从Firebase获取
+
             else if (firebaseHelper.getCurrentUser() != null) {
                 val uid = firebaseHelper.getCurrentUser()?.uid ?: ""
                 firebaseHelper.getUserData(
@@ -82,22 +73,18 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                         username = user.username
                     },
                     onError = { errorMsg ->
-                        // 如果获取失败，使用默认名称
                         username = "User"
                     }
                 )
             }
         } catch (e: Exception) {
-            // 如果出错，使用默认名称
             username = "User"
         }
     }
     
-    // 使用LaunchedEffect在屏幕加载时获取数据
     LaunchedEffect(Unit) {
         isLoading = true
         try {
-            // 获取所有活动
             val fetchedActivities = firebaseHelper.getActivities()
             activities = fetchedActivities
             isLoading = false
@@ -123,14 +110,13 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        // 使用动态用户名
                         text = "Hi, ${if (username.isNotEmpty()) username else "Fan"}",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 actions = {
-                    IconButton(onClick = { /* 处理通知点击事件 */ }) {
+                    IconButton(onClick = { /* Handle the notification click event */ }) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_notification),
                             contentDescription = "Notifications",
@@ -175,7 +161,6 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 根据加载状态显示不同内容
             when {
                 isLoading -> {
                     Box(
@@ -194,7 +179,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("加载失败: $error", color = Color.Red)
+                        Text("Loading failure: $error", color = Color.Red)
                     }
                 }
                 activities.isEmpty() -> {
@@ -204,7 +189,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("暂无活动数据")
+                        Text("There is no activity data for the time being")
                     }
                 }
                 else -> {
@@ -267,7 +252,7 @@ fun BannerSection(navController: NavController) {
             }
 
             androidx.compose.foundation.Image(
-                painter = painterResource(id = R.drawable.ic_banner_image), // 替换成你项目中的 Banner 图片
+                painter = painterResource(id = R.drawable.ic_banner_image),
                 contentDescription = "Banner Illustration",
                 modifier = Modifier
                     .size(120.dp)
