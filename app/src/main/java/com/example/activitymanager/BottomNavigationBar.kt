@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.graphics.vector.ImageVector
 
 import com.example.activitymanager.BottomNavItem
 import androidx.navigation.NavController

@@ -24,7 +24,7 @@ import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Date
-
+import com.google.firebase.firestore.Source
 class FirebaseHelper {
     private val auth: FirebaseAuth = Firebase.auth
     private val db: FirebaseFirestore = Firebase.firestore
@@ -347,28 +347,54 @@ class FirebaseHelper {
         onError: (String) -> Unit
     ) {
         try {
-            Log.d("FirebaseHelper", "Starting registration for activity ID: '$activityId'")
+            Log.d("FirebaseHelper", "Starting registration for activity with custom ID: '$activityId'")
             val db = FirebaseFirestore.getInstance()
 
-            // 列出所有活动以检查数据库连接
             val allActivities = db.collection("activities").get().await()
             Log.d("FirebaseHelper", "Total activities in database: ${allActivities.size()}")
-            Log.d("FirebaseHelper", "Available activity IDs: ${allActivities.documents.map { it.id }}")
+            Log.d("FirebaseHelper", "Available custom activity IDs: ${allActivities.documents.mapNotNull { it.getString("id") }}")
 
-            // 首先检查活动是否存在
-            val activityDoc = db.collection("activities").document(activityId).get().await()
+            val querySnapshot = db.collection("activities")
+                .whereEqualTo("id", activityId)
+                .get()
+                .await()
 
-            if (!activityDoc.exists()) {
-                Log.e("FirebaseHelper", "Activity does not exist: '$activityId'")
-                Log.e("FirebaseHelper", "Document data: ${activityDoc.data}")
-                Log.e("FirebaseHelper", "Document ID from snapshot: ${activityDoc.id}")
+            if (querySnapshot.isEmpty) {
+                Log.e("FirebaseHelper", "No activity found with custom id: '$activityId'")
                 onError("Activity not found")
                 return
             }
 
-            Log.d("FirebaseHelper", "Activity exists, updating participants")
+            val activityDoc = querySnapshot.documents.first()
+            Log.d("FirebaseHelper", "Found activity with title: ${activityDoc.getString("title")}")
+            Log.d("FirebaseHelper", "Firestore document ID: ${activityDoc.id}")
 
-            // 继续执行注册逻辑...
+            val participantsIDs = activityDoc.get("participantsIDs") as? List<String> ?: emptyList()
+
+            if (participantsIDs.contains(userId)) {
+                Log.d("FirebaseHelper", "User $userId is already registered for this activity")
+                onError("You are already registered for this activity")
+                return
+            }
+
+            val maxParticipants = (activityDoc.getLong("participants") ?: 0).toInt()
+
+            if (participantsIDs.size >= maxParticipants) {
+                Log.d("FirebaseHelper", "Activity is full ($participantsIDs.size/$maxParticipants)")
+                onError("This activity is already full")
+                return
+            }
+
+            val newParticipantsIDs = participantsIDs + userId
+
+            Log.d("FirebaseHelper", "Updating participantsIDs for activity")
+            db.collection("activities")
+                .document(activityDoc.id)
+                .update("participantsIDs", newParticipantsIDs)
+                .await()
+
+            Log.d("FirebaseHelper", "Successfully registered for activity. New participant count: ${newParticipantsIDs.size}")
+            onSuccess()
         } catch (e: Exception) {
             Log.e("FirebaseHelper", "Exception during registration", e)
             onError(e.message ?: "Failed to register for activity")
@@ -382,18 +408,82 @@ class FirebaseHelper {
         try {
             val db = FirebaseFirestore.getInstance()
 
-            val activityDoc = db.collection("activities").document(activityId).get().await()
-            val participants = activityDoc.get("participantsIDs") as? List<String> ?: emptyList()
-            if (participants.contains(userId)) {
-                return true
+            val querySnapshot = db.collection("activities")
+                .whereEqualTo("id", activityId)
+                .get()
+                .await()
+
+            if (querySnapshot.isEmpty) {
+                Log.e("FirebaseHelper", "No activity found with custom id: '$activityId'")
+                return false
             }
-            return false
+
+            val activityDoc = querySnapshot.documents.first()
+            val participants = activityDoc.get("participantsIDs") as? List<String> ?: emptyList()
+
+            return participants.contains(userId)
         } catch (e: Exception) {
-            println("Error checking registration status: ${e.message}")
+            Log.e("FirebaseHelper", "Error checking registration status", e)
             return false
         }
     }
 
+    suspend fun unregisterFromActivity(
+        activityId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            Log.d("FirebaseHelper", "Starting unregistration for activity with custom ID: '$activityId'")
+            val db = FirebaseFirestore.getInstance()
+
+            val querySnapshot = db.collection("activities")
+                .whereEqualTo("id", activityId)
+                .get()
+                .await()
+
+            if (querySnapshot.isEmpty) {
+                Log.e("FirebaseHelper", "No activity found with custom id: '$activityId'")
+                onError("Activity not found")
+                return
+            }
+
+            val activityDoc = querySnapshot.documents.first()
+            val firebaseDocId = activityDoc.id
+            Log.d("FirebaseHelper", "Found activity document with ID: $firebaseDocId")
+
+            db.runTransaction { transaction ->
+                val latestDoc = transaction.get(db.collection("activities").document(firebaseDocId))
+
+                val participantsIDs = latestDoc.get("participantsIDs") as? List<String> ?: emptyList()
+                Log.d("FirebaseHelper", "Current participantsIDs: $participantsIDs")
+
+                if (!participantsIDs.contains(userId)) {
+                    throw Exception("User is not registered for this activity")
+                }
+
+                val newParticipantsIDs = participantsIDs.filter { it != userId }
+                Log.d("FirebaseHelper", "New participantsIDs after removal: $newParticipantsIDs")
+
+                transaction.update(
+                    db.collection("activities").document(firebaseDocId),
+                    "participantsIDs", newParticipantsIDs
+                )
+                null
+            }.addOnSuccessListener {
+                Log.d("FirebaseHelper", "Successfully unregistered from activity")
+                onSuccess()
+            }.addOnFailureListener { e ->
+                Log.e("FirebaseHelper", "Failed to unregister from activity", e)
+                onError("Failed to unregister: ${e.message}")
+            }
+
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Exception during unregistration", e)
+            onError(e.message ?: "Failed to unregister from activity")
+        }
+    }
 
     // get activity list
     suspend fun getActivities(
