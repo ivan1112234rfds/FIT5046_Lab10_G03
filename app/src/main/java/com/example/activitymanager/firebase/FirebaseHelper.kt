@@ -150,28 +150,24 @@ class FirebaseHelper {
             val uid = auth.currentUser?.uid
             Log.d(TAG, "Login successful: ${auth.currentUser?.uid}")
             if (uid != null) {
-                // 获取用户的完整信息
                 try {
                     val userSnapshot = usersCollection.document(uid).get().await()
                     val user = userSnapshot.toObject(User::class.java)
                     
                     if (user != null) {
-                        // 保存更多用户信息到本地数据库
                         val userEntity = UserEntity(
                             uid = uid, 
                             email = email,
-                            username = user.username // 保存用户名
+                            username = user.username
                         )
                         userDao.insertUser(userEntity)
                         Log.d(TAG, "User data saved to local database: ${user.username}")
                     } else {
-                        // 如果获取不到用户信息，仍然保存基本信息
                         val userEntity = UserEntity(uid = uid, email = email)
                         userDao.insertUser(userEntity)
                         Log.d(TAG, "Basic user data saved to local database")
                     }
                 } catch (e: Exception) {
-                    // 如果获取用户信息失败，仍然保存基本信息
                     Log.e(TAG, "Failed to get user data from Firestore", e)
                     val userEntity = UserEntity(uid = uid, email = email)
                     userDao.insertUser(userEntity)
@@ -350,10 +346,6 @@ class FirebaseHelper {
             Log.d("FirebaseHelper", "Starting registration for activity with custom ID: '$activityId'")
             val db = FirebaseFirestore.getInstance()
 
-            val allActivities = db.collection("activities").get().await()
-            Log.d("FirebaseHelper", "Total activities in database: ${allActivities.size()}")
-            Log.d("FirebaseHelper", "Available custom activity IDs: ${allActivities.documents.mapNotNull { it.getString("id") }}")
-
             val querySnapshot = db.collection("activities")
                 .whereEqualTo("id", activityId)
                 .get()
@@ -378,22 +370,19 @@ class FirebaseHelper {
             }
 
             val maxParticipants = (activityDoc.getLong("participants") ?: 0).toInt()
-
             if (participantsIDs.size >= maxParticipants) {
-                Log.d("FirebaseHelper", "Activity is full ($participantsIDs.size/$maxParticipants)")
+                Log.d("FirebaseHelper", "Activity is full (${participantsIDs.size}/$maxParticipants)")
                 onError("This activity is already full")
                 return
             }
 
-            val newParticipantsIDs = participantsIDs + userId
-
-            Log.d("FirebaseHelper", "Updating participantsIDs for activity")
+            Log.d("FirebaseHelper", "Adding user to participantsIDs using arrayUnion")
             db.collection("activities")
                 .document(activityDoc.id)
-                .update("participantsIDs", newParticipantsIDs)
+                .update("participantsIDs", FieldValue.arrayUnion(userId))
                 .await()
 
-            Log.d("FirebaseHelper", "Successfully registered for activity. New participant count: ${newParticipantsIDs.size}")
+            Log.d("FirebaseHelper", "Successfully registered for activity. New participant count: ${participantsIDs.size + 1}")
             onSuccess()
         } catch (e: Exception) {
             Log.e("FirebaseHelper", "Exception during registration", e)
@@ -435,8 +424,7 @@ class FirebaseHelper {
         onError: (String) -> Unit
     ) {
         try {
-            Log.d("FirebaseHelper", "Starting unregistration for activity with custom ID: '$activityId'")
-            val db = FirebaseFirestore.getInstance()
+            Log.d("FirebaseHelper", "Starting unregistration with arrayRemove for: $activityId")
 
             val querySnapshot = db.collection("activities")
                 .whereEqualTo("id", activityId)
@@ -444,44 +432,21 @@ class FirebaseHelper {
                 .await()
 
             if (querySnapshot.isEmpty) {
-                Log.e("FirebaseHelper", "No activity found with custom id: '$activityId'")
+                Log.e("FirebaseHelper", "Activity not found")
                 onError("Activity not found")
                 return
             }
 
-            val activityDoc = querySnapshot.documents.first()
-            val firebaseDocId = activityDoc.id
-            Log.d("FirebaseHelper", "Found activity document with ID: $firebaseDocId")
+            val docRef = querySnapshot.documents.first().reference
+            Log.d("FirebaseHelper", "Document reference: $docRef")
 
-            db.runTransaction { transaction ->
-                val latestDoc = transaction.get(db.collection("activities").document(firebaseDocId))
+            docRef.update("participantsIDs", FieldValue.arrayRemove(userId))
 
-                val participantsIDs = latestDoc.get("participantsIDs") as? List<String> ?: emptyList()
-                Log.d("FirebaseHelper", "Current participantsIDs: $participantsIDs")
-
-                if (!participantsIDs.contains(userId)) {
-                    throw Exception("User is not registered for this activity")
-                }
-
-                val newParticipantsIDs = participantsIDs.filter { it != userId }
-                Log.d("FirebaseHelper", "New participantsIDs after removal: $newParticipantsIDs")
-
-                transaction.update(
-                    db.collection("activities").document(firebaseDocId),
-                    "participantsIDs", newParticipantsIDs
-                )
-                null
-            }.addOnSuccessListener {
-                Log.d("FirebaseHelper", "Successfully unregistered from activity")
-                onSuccess()
-            }.addOnFailureListener { e ->
-                Log.e("FirebaseHelper", "Failed to unregister from activity", e)
-                onError("Failed to unregister: ${e.message}")
-            }
-
+            Log.d("FirebaseHelper", "Successfully removed user from participants list")
+            onSuccess()
         } catch (e: Exception) {
-            Log.e("FirebaseHelper", "Exception during unregistration", e)
-            onError(e.message ?: "Failed to unregister from activity")
+            Log.e("FirebaseHelper", "Exception in unregister", e)
+            onError(e.message ?: "Unknown error")
         }
     }
 
