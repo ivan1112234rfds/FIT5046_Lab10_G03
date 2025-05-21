@@ -16,9 +16,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -33,22 +35,73 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapType
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 import java.text.SimpleDateFormat
 import java.util.Locale
+import android.content.Intent
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.People
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.activitymanager.firebase.FirebaseHelper
+import com.example.activitymanager.mapper.Activity
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
-    val allActivities = remember { createMockActivities() }
-    val activity = remember { allActivities.find { it.id == activityId } }
+    var activities by remember { mutableStateOf<List<Activity>>(emptyList()) }
+
+    val firebaseHelper = remember { FirebaseHelper() }
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    LaunchedEffect(activityId) {
+        coroutineScope.launch {
+            try {
+                activities = firebaseHelper.getActivities()
+            } catch (e: Exception) {
+                Log.e("ActivityDetails", "Error loading activity details", e)
+            }
+        }
+    }
+    val activity = activities.find { it.id == activityId }
+    val currentUser = Firebase.auth.currentUser
+    val userId = currentUser?.uid?: ""
+    var isUserRegistered by remember { mutableStateOf(false) }
+    LaunchedEffect(activityId, userId) {
+        if (userId.isNotEmpty()) {
+            isUserRegistered = firebaseHelper.checkIfUserRegistered(activityId, userId)
+        }
+    }
 
     if (activity == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -58,6 +111,32 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
     }
 
     val dateFormat = SimpleDateFormat("EEEE, MMMM d, yyyy 'at' h:mm a", Locale.getDefault())
+
+    val mapUiSettings = remember {
+        MapUiSettings(
+            zoomControlsEnabled = true,
+            compassEnabled = true,
+            mapToolbarEnabled = true
+        )
+    }
+
+    val mapProperties = remember {
+        MapProperties(
+            mapType = MapType.NORMAL,
+            isMyLocationEnabled = false
+        )
+    }
+
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(activity.coordinates, 15f)
+    }
+
+    LaunchedEffect(activity.coordinates) {
+        cameraPositionState.animate(
+            update = CameraUpdateFactory.newLatLngZoom(activity.coordinates, 15f),
+            durationMs = 1000
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -123,7 +202,7 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Star,
+                                imageVector = Icons.Default.People,
                                 contentDescription = null,
                                 tint = Color(0xFFFFC107)
                             )
@@ -131,7 +210,7 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                             Spacer(modifier = Modifier.width(4.dp))
 
                             Text(
-                                text = "${activity.rating} • ${activity.participants} participants",
+                                text = "${activity.participants} participants",
                                 fontSize = 14.sp
                             )
                         }
@@ -156,7 +235,7 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Star,
+                                imageVector = Icons.Default.Timer,
                                 contentDescription = null
                             )
 
@@ -175,14 +254,84 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Button(
-                                onClick = { /* 注册活动 */ },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Text("Register Now")
+                            if (isUserRegistered) {
+                                Button(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            try {
+                                                firebaseHelper.unregisterFromActivity(
+                                                    activityId = activityId,
+                                                    userId = userId,
+                                                    onSuccess = {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Successfully unregistered from activity",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                        isUserRegistered = false
+                                                    },
+                                                    onError = { error ->
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Failed to unregister: $error",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                                )
+                                            } catch (e: Exception) {
+                                                Log.e(
+                                                    "ActivityDetails",
+                                                    "Error unregistering from activity",
+                                                    e
+                                                )
+                                                Toast.makeText(
+                                                    context,
+                                                    "Error: ${e.message}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Cancel,
+                                        contentDescription = null
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Cancel Registration")
+                                }
+                            }else {
+                                Button(
+                                    onClick = {
+                                        if (userId.isEmpty()) {
+                                            Toast.makeText(context, "Please log in to register", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            coroutineScope.launch {
+                                                firebaseHelper.registerForActivity(
+                                                    activityId = activityId,
+                                                    userId = userId,
+                                                    onSuccess = {
+                                                        Toast.makeText(context, "Successfully registered for activity", Toast.LENGTH_SHORT).show()
+                                                        isUserRegistered = true
+                                                    },
+                                                    onError = { error ->
+                                                        Toast.makeText(context, "Registration failed: $error", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Text("Register Now")
+                                }
                             }
                         }
                     }
@@ -238,7 +387,8 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.LocationOn,
-                                contentDescription = null
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
                             )
 
                             Spacer(modifier = Modifier.width(4.dp))
@@ -251,44 +401,46 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp)
+                                .height(250.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFE0E5FF))
                         ) {
-                            // GoogleMap(
-                            //    modifier = Modifier.fillMaxSize(),
-                            //    cameraPositionState = rememberCameraPositionState {
-                            //        position = CameraPosition.fromLatLngZoom(activity.coordinates, 15f)
-                            //    }
-                            // ) {
-                            //    Marker(
-                            //        state = MarkerState(position = activity.coordinates),
-                            //        title = activity.title
-                            //    )
-                            // }
-
-                            Box(
+                            GoogleMap(
                                 modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
+                                cameraPositionState = cameraPositionState,
+                                properties = mapProperties,
+                                uiSettings = mapUiSettings
                             ) {
-                                Text("Google Map will be displayed here")
+                                Marker(
+                                    state = MarkerState(position = activity.coordinates),
+                                    title = activity.title,
+                                    snippet = activity.location
+                                )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         OutlinedButton(
-                            onClick = { /*  */ },
+                            onClick = {
+                                val gmmIntentUri = Uri.parse(
+                                    "google.navigation:q=${activity.coordinates.latitude},${activity.coordinates.longitude}"
+                                )
+                                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                mapIntent.setPackage("com.google.android.apps.maps")
+
+                                if (mapIntent.resolveActivity(context.packageManager) != null) {
+                                    context.startActivity(mapIntent)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = null
+                                imageVector = Icons.AutoMirrored.Filled.DirectionsRun,
+                                contentDescription = "Get Directions"
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Get Directions")

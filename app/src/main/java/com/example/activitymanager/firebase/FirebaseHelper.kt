@@ -19,8 +19,13 @@ import kotlinx.coroutines.tasks.await
 import com.example.activitymanager.mapper.Activity as ActivityModel
 import com.example.activitymanager.dao.UserDao
 import com.example.activitymanager.roomEntity.UserEntity
+import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.firestore.FieldValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Date
 import java.util.Calendar
+import com.google.firebase.firestore.Source
 
 class FirebaseHelper {
     private val auth: FirebaseAuth = Firebase.auth
@@ -147,8 +152,28 @@ class FirebaseHelper {
             val uid = auth.currentUser?.uid
             Log.d(TAG, "Login successful: ${auth.currentUser?.uid}")
             if (uid != null) {
-                val user = UserEntity(uid = uid, email = email)
-                userDao.insertUser(user)
+                try {
+                    val userSnapshot = usersCollection.document(uid).get().await()
+                    val user = userSnapshot.toObject(User::class.java)
+                    
+                    if (user != null) {
+                        val userEntity = UserEntity(
+                            uid = uid, 
+                            email = email,
+                            username = user.username
+                        )
+                        userDao.insertUser(userEntity)
+                        Log.d(TAG, "User data saved to local database: ${user.username}")
+                    } else {
+                        val userEntity = UserEntity(uid = uid, email = email)
+                        userDao.insertUser(userEntity)
+                        Log.d(TAG, "Basic user data saved to local database")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get user data from Firestore", e)
+                    val userEntity = UserEntity(uid = uid, email = email)
+                    userDao.insertUser(userEntity)
+                }
             }
             onSuccess()
         } catch (e: Exception) {
@@ -209,8 +234,7 @@ class FirebaseHelper {
         googleSignInClient?.signOut()
         signOut()
     }
-    
-    // 添加检查用户登录状态的帮助方法
+
     fun checkAuthState() {
         val user = auth.currentUser
         if (user != null) {
@@ -314,6 +338,120 @@ class FirebaseHelper {
         }
     }
 
+    suspend fun registerForActivity(
+        activityId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            Log.d("FirebaseHelper", "Starting registration for activity with custom ID: '$activityId'")
+            val db = FirebaseFirestore.getInstance()
+
+            val querySnapshot = db.collection("activities")
+                .whereEqualTo("id", activityId)
+                .get()
+                .await()
+
+            if (querySnapshot.isEmpty) {
+                Log.e("FirebaseHelper", "No activity found with custom id: '$activityId'")
+                onError("Activity not found")
+                return
+            }
+
+            val activityDoc = querySnapshot.documents.first()
+            Log.d("FirebaseHelper", "Found activity with title: ${activityDoc.getString("title")}")
+            Log.d("FirebaseHelper", "Firestore document ID: ${activityDoc.id}")
+
+            val participantsIDs = activityDoc.get("participantsIDs") as? List<String> ?: emptyList()
+
+            if (participantsIDs.contains(userId)) {
+                Log.d("FirebaseHelper", "User $userId is already registered for this activity")
+                onError("You are already registered for this activity")
+                return
+            }
+
+            val maxParticipants = (activityDoc.getLong("participants") ?: 0).toInt()
+            if (participantsIDs.size >= maxParticipants) {
+                Log.d("FirebaseHelper", "Activity is full (${participantsIDs.size}/$maxParticipants)")
+                onError("This activity is already full")
+                return
+            }
+
+            Log.d("FirebaseHelper", "Adding user to participantsIDs using arrayUnion")
+            db.collection("activities")
+                .document(activityDoc.id)
+                .update("participantsIDs", FieldValue.arrayUnion(userId))
+                .await()
+
+            Log.d("FirebaseHelper", "Successfully registered for activity. New participant count: ${participantsIDs.size + 1}")
+            onSuccess()
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Exception during registration", e)
+            onError(e.message ?: "Failed to register for activity")
+        }
+    }
+
+    suspend fun checkIfUserRegistered(
+        activityId: String,
+        userId: String
+    ): Boolean {
+        try {
+            val db = FirebaseFirestore.getInstance()
+
+            val querySnapshot = db.collection("activities")
+                .whereEqualTo("id", activityId)
+                .get()
+                .await()
+
+            if (querySnapshot.isEmpty) {
+                Log.e("FirebaseHelper", "No activity found with custom id: '$activityId'")
+                return false
+            }
+
+            val activityDoc = querySnapshot.documents.first()
+            val participants = activityDoc.get("participantsIDs") as? List<String> ?: emptyList()
+
+            return participants.contains(userId)
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Error checking registration status", e)
+            return false
+        }
+    }
+
+    suspend fun unregisterFromActivity(
+        activityId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            Log.d("FirebaseHelper", "Starting unregistration with arrayRemove for: $activityId")
+
+            val querySnapshot = db.collection("activities")
+                .whereEqualTo("id", activityId)
+                .get()
+                .await()
+
+            if (querySnapshot.isEmpty) {
+                Log.e("FirebaseHelper", "Activity not found")
+                onError("Activity not found")
+                return
+            }
+
+            val docRef = querySnapshot.documents.first().reference
+            Log.d("FirebaseHelper", "Document reference: $docRef")
+
+            docRef.update("participantsIDs", FieldValue.arrayRemove(userId))
+
+            Log.d("FirebaseHelper", "Successfully removed user from participants list")
+            onSuccess()
+        } catch (e: Exception) {
+            Log.e("FirebaseHelper", "Exception in unregister", e)
+            onError(e.message ?: "Unknown error")
+        }
+    }
+
     // get activity list
     suspend fun getActivities(
         uid: String? = null,
@@ -355,9 +493,9 @@ class FirebaseHelper {
                     val duration = doc.getString("duration") ?: ""
                     val typeField = doc.getString("type") ?: ""
                     val participants = (doc.getLong("participants") ?: 0).toInt()
+                    val participantsIDs = (doc.get("participantsIDs") as? List<String>) ?: emptyList()
                     val isFavorite = doc.getBoolean("isFavorite") ?: false
 
-                    // 手动构造 LatLng（如果 Firestore 是 GeoPoint 类型）
                     val coordinatesMap = doc.get("coordinates") as? Map<*, *>
                     val lat = coordinatesMap?.get("latitude") as? Double ?: 0.0
                     val lng = coordinatesMap?.get("longitude") as? Double ?: 0.0
@@ -375,6 +513,7 @@ class FirebaseHelper {
                         duration = duration,
                         type = typeField,
                         participants = participants,
+                        participantsIDs = participantsIDs,
                         isFavorite = isFavorite,
                         coordinates = coordinates
                     )
@@ -426,4 +565,27 @@ class FirebaseHelper {
         }
         return result
     }
-} 
+
+    suspend fun deleteActivity(
+        activityId: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            val currentUser = auth.currentUser
+            if (currentUser == null) {
+                onError("User not authenticated")
+                return
+            }
+            withContext(Dispatchers.IO) {
+                db.collection("activities")
+                    .document(activityId)
+                    .delete()
+                    .await()
+            }
+            onSuccess()
+        } catch (e: Exception) {
+            onError(e.message ?: "Unknown error occurred")
+        }
+    }
+}

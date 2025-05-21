@@ -2,6 +2,7 @@ package com.example.activitymanager
 
 import CreateActivityScreen
 import EditActivityScreen
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -25,6 +26,7 @@ import java.util.Date
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -32,9 +34,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.activitymanager.firebase.FirebaseHelper
@@ -42,6 +46,7 @@ import com.example.activitymanager.mapper.Activity
 import com.example.assignmentcode.ui.theme.AssignmentCodeTheme
 import com.example.activitymanager.LoginScreen
 import com.example.activitymanager.RegisterScreen
+import com.example.assignmentcode.BottomNavigationBar
 import com.example.fit5046assignment.HomeScreen
 import com.example.fit5046assignment.ProfileScreen
 import com.google.android.gms.maps.model.LatLng
@@ -70,19 +75,6 @@ class MainActivity : ComponentActivity() {
                 Log.d(TAG, "Firebase already initialized")
             }
             
-            // 移除emulator连接，我们将在LoginScreen中处理
-            // useEmulator = false 保留注释以提醒未来可能的变更
-            /*
-            val useEmulator = false
-            if (useEmulator) {
-                try {
-                    Firebase.auth.useEmulator("10.0.2.2", 9099)
-                    Log.d(TAG, "Using Auth Emulator on 10.0.2.2:9099")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to connect to Auth Emulator", e)
-                }
-            }
-            */
         } catch (e: Exception) {
             Log.e(TAG, "Error initializing Firebase", e)
             showToast("Failed to initialize Firebase: ${e.message}")
@@ -157,7 +149,24 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 }
-
+fun navigateToTab(navController: NavController, route: String) {
+    val navigationRoute = when (route) {
+        "Home" -> "home"
+        "My Activity" -> "activities"
+        "Search" -> "search"
+        "Manage" -> "manage"
+        "Profile" -> "profile"
+        else -> route
+    }
+    navController.navigate(navigationRoute) {
+        popUpTo(navController.graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun ActivityApp(
     firebaseHelper: FirebaseHelper,
@@ -168,12 +177,9 @@ fun ActivityApp(
     NavHost(navController = navController, startDestination = "Home") {
         composable("activities") {
             MyActivitiesScreen(
-                navController,
+                navController = navController,
                 onActivityClick = { activityId ->
                     navController.navigate("activity_details/$activityId")
-                },
-                onCreateActivityClick = {
-                    navController.navigate("create_activity")
                 }
             )
         }
@@ -198,7 +204,7 @@ fun ActivityApp(
             navController.navigate("activity_details/$activityId")
         },) }
         composable("home") {
-            HomeScreens(navController)
+            HomeScreen(navController)
         }
         composable("login") {
             LoginScreen(
@@ -240,7 +246,6 @@ fun ActivityApp(
 
 
 
-
 fun createMockActivities(): List<Activity> {
     val cal = Calendar.getInstance()
     val mockActivities = mutableListOf<Activity>()
@@ -258,6 +263,7 @@ fun createMockActivities(): List<Activity> {
             rating = 4.9,
             duration = "2h 30mins",
             participants = 1245,
+            participantsIDs = emptyList(),
             type = "Hiking",
             isFavorite = true,
             coordinates = LatLng(37.7749, -122.4194)  // San Francisco coordinates
@@ -277,6 +283,7 @@ fun createMockActivities(): List<Activity> {
             rating = 4.2,
             duration = "3h 30mins",
             participants = 2182,
+            participantsIDs = emptyList(),
             type = "Hiking",
             coordinates = LatLng(0.0, 0.0)  // Online course
         )

@@ -37,6 +37,7 @@ fun CreateActivityScreen(
     var organizer by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("") }
     var participants by remember { mutableStateOf("") }
+    var participantsIDs by remember { mutableStateOf<List<String>>(emptyList()) }
     var latitude by remember { mutableStateOf("0.0") }
     var longitude by remember { mutableStateOf("0.0") }
     var currentUserId by remember { mutableStateOf("") }
@@ -315,6 +316,7 @@ fun CreateActivityScreen(
                         type = type,
                         duration = duration,
                         participants = participants.toIntOrNull() ?: 0,
+                        participantsIDs = participantsIDs,
                         isFavorite = false,
                         coordinates = LatLng(
                             latitude.toDoubleOrNull() ?: 0.0,
