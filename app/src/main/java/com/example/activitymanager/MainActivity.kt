@@ -75,19 +75,6 @@ class MainActivity : ComponentActivity() {
                 Log.d(TAG, "Firebase already initialized")
             }
             
-            // 移除emulator连接，我们将在LoginScreen中处理
-            // useEmulator = false 保留注释以提醒未来可能的变更
-            /*
-            val useEmulator = false
-            if (useEmulator) {
-                try {
-                    Firebase.auth.useEmulator("10.0.2.2", 9099)
-                    Log.d(TAG, "Using Auth Emulator on 10.0.2.2:9099")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to connect to Auth Emulator", e)
-                }
-            }
-            */
         } catch (e: Exception) {
             Log.e(TAG, "Error initializing Firebase", e)
             showToast("Failed to initialize Firebase: ${e.message}")
@@ -187,95 +174,79 @@ fun ActivityApp(
 ) {
     val navController = rememberNavController()
 
-
     NavHost(navController = navController, startDestination = "Home") {
         composable("activities") {
             MyActivitiesScreen(
-                navController,
+                navController = navController,
                 onActivityClick = { activityId ->
                     navController.navigate("activity_details/$activityId")
                 },
                 onCreateActivityClick = {
                     navController.navigate("create_activity")
-
                 }
             )
         }
-    ) { innerPadding ->
-        NavHost(navController = navController, startDestination = "Home") {
-            composable("activities") {
-                MyActivitiesScreen(
-                    onActivityClick = { activityId ->
-                        navController.navigate("activity_details/$activityId")
-                    },
-                    onCreateActivityClick = {
-                        navController.navigate("create_activity")
-                    }
-                )
-            }
-            composable(
-                route = "activity_details/{activityId}",
-                arguments = listOf(navArgument("activityId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val activityId = backStackEntry.arguments?.getString("activityId") ?: ""
-                ActivityDetailsScreen(
-                    activityId = activityId,
-                    onBackClick = { navController.popBackStack() }
-                )
-            }
-            composable("create_activity") {
-                CreateActivityScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onActivityCreated = {
-                    }
-                )
-            }
-            composable("activityList") {
-                ActivityScreen(
-                    navController,
-                    onActivityClick = { activityId ->
-                        navController.navigate("activity_details/$activityId")
-                    },
-                )
-            }
-            composable("home") {
-                HomeScreens(navController)
-            }
-            composable("login") {
-                LoginScreen(
-                    navController = navController,
-                    onGoogleSignIn = onGoogleSignIn
-                )
-            }
-
-            composable("register") {
-                com.example.activitymanager.RegisterScreen(navController)
-            }
-            composable("Manage") {
-                ActivityManageScreen(navController)
-            }
-            composable("Dashboard") {
-                DashboardScreen(navController)
-            }
-            composable("forgot_password") {
-                ForgotPasswordScreen(navController)
-            }
-            composable("HomeScreen") {
-                HomeScreen(navController)
-            }
-            composable("Profile") {
-                ProfileScreen(navController)
-            }
-            composable("edit_activity") {
-                EditActivityScreen(
-                    navController,
-                    onNavigateBack = { navController.popBackStack() },
-                    onActivityCreated = { }
-                )
-            }
+        composable(
+            route = "activity_details/{activityId}",
+            arguments = listOf(navArgument("activityId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val activityId = backStackEntry.arguments?.getString("activityId") ?: ""
+            ActivityDetailsScreen(
+                activityId = activityId,
+                onBackClick = { navController.popBackStack() }
+            )
         }
+        composable("create_activity") {
+            CreateActivityScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onActivityCreated = {
+                }
+            )
+        }
+        composable("activityList") { ActivityScreen(navController, onActivityClick = { activityId ->
+            navController.navigate("activity_details/$activityId")
+        },) }
+        composable("home") {
+            HomeScreen(navController)
+        }
+        composable("login") {
+            LoginScreen(
+                navController = navController,
+                onGoogleSignIn = onGoogleSignIn
+            )
+        }
+
+        composable("register") {
+            com.example.activitymanager.RegisterScreen(navController)
+        }
+        composable("Manage") {
+            ActivityManageScreen(navController)
+        }
+        composable("Dashboard") {
+            DashboardScreen(navController)
+        }
+        composable("forgot_password") {
+            ForgotPasswordScreen(navController)
+        }
+        composable("HomeScreen") {
+            HomeScreen(navController)
+        }
+        composable("Profile") {
+            ProfileScreen(navController)
+        }
+        composable("edit_activity") {
+            EditActivityScreen(
+                navController,
+                onNavigateBack = { navController.popBackStack() },
+                onActivityCreated = { }
+            )
+        }
+
     }
 }
+
+
+
 
 
 fun createMockActivities(): List<Activity> {

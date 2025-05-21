@@ -94,7 +94,6 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
         }
     }
     val activity = activities.find { it.id == activityId }
-    val activityUid = activity?.uid
     val currentUser = Firebase.auth.currentUser
     val userId = currentUser?.uid?: ""
     var isUserRegistered by remember { mutableStateOf(false) }
@@ -257,7 +256,42 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                         ) {
                             if (isUserRegistered) {
                                 Button(
-                                    onClick = {},
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            try {
+                                                firebaseHelper.unregisterFromActivity(
+                                                    activityId = activityId,
+                                                    userId = userId,
+                                                    onSuccess = {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Successfully unregistered from activity",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                        isUserRegistered = false
+                                                    },
+                                                    onError = { error ->
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Failed to unregister: $error",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                                )
+                                            } catch (e: Exception) {
+                                                Log.e(
+                                                    "ActivityDetails",
+                                                    "Error unregistering from activity",
+                                                    e
+                                                )
+                                                Toast.makeText(
+                                                    context,
+                                                    "Error: ${e.message}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                    },
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.error
@@ -270,7 +304,7 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Cancel Registration")
                                 }
-                            } else {
+                            }else {
                                 Button(
                                     onClick = {
                                         if (userId.isEmpty()) {
@@ -278,7 +312,7 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                                         } else {
                                             coroutineScope.launch {
                                                 firebaseHelper.registerForActivity(
-                                                    activityId = activityUid.toString(),
+                                                    activityId = activityId,
                                                     userId = userId,
                                                     onSuccess = {
                                                         Toast.makeText(context, "Successfully registered for activity", Toast.LENGTH_SHORT).show()
