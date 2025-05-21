@@ -15,6 +15,7 @@ data class Activity(
     val duration: String,
     val type: String,
     val participants: Int,
+    val participantsIDs: List<String>,
     val isFavorite: Boolean = false,
     val coordinates: LatLng = LatLng(0.0, 0.0)
 )

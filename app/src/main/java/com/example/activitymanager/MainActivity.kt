@@ -2,6 +2,7 @@ package com.example.activitymanager
 
 import CreateActivityScreen
 import EditActivityScreen
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -25,6 +26,7 @@ import java.util.Date
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -32,9 +34,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.activitymanager.firebase.FirebaseHelper
@@ -42,6 +46,7 @@ import com.example.activitymanager.mapper.Activity
 import com.example.assignmentcode.ui.theme.AssignmentCodeTheme
 import com.example.activitymanager.LoginScreen
 import com.example.activitymanager.RegisterScreen
+import com.example.assignmentcode.BottomNavigationBar
 import com.example.fit5046assignment.HomeScreen
 import com.example.fit5046assignment.ProfileScreen
 import com.google.android.gms.maps.model.LatLng
@@ -157,13 +162,31 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 }
-
+fun navigateToTab(navController: NavController, route: String) {
+    val navigationRoute = when (route) {
+        "Home" -> "home"
+        "My Activity" -> "activities"
+        "Search" -> "search"
+        "Manage" -> "manage"
+        "Profile" -> "profile"
+        else -> route
+    }
+    navController.navigate(navigationRoute) {
+        popUpTo(navController.graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun ActivityApp(
     firebaseHelper: FirebaseHelper,
     onGoogleSignIn: () -> Unit
 ) {
     val navController = rememberNavController()
+
 
     NavHost(navController = navController, startDestination = "Home") {
         composable("activities") {
@@ -174,71 +197,85 @@ fun ActivityApp(
                 },
                 onCreateActivityClick = {
                     navController.navigate("create_activity")
+
                 }
             )
         }
-        composable(
-            route = "activity_details/{activityId}",
-            arguments = listOf(navArgument("activityId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val activityId = backStackEntry.arguments?.getString("activityId") ?: ""
-            ActivityDetailsScreen(
-                activityId = activityId,
-                onBackClick = { navController.popBackStack() }
-            )
-        }
-        composable("create_activity") {
-            CreateActivityScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onActivityCreated = {
-                }
-            )
-        }
-        composable("activityList") { ActivityScreen(navController, onActivityClick = { activityId ->
-            navController.navigate("activity_details/$activityId")
-        },) }
-        composable("home") {
-            HomeScreens(navController)
-        }
-        composable("login") {
-            LoginScreen(
-                navController = navController,
-                onGoogleSignIn = onGoogleSignIn
-            )
-        }
+    ) { innerPadding ->
+        NavHost(navController = navController, startDestination = "Home") {
+            composable("activities") {
+                MyActivitiesScreen(
+                    onActivityClick = { activityId ->
+                        navController.navigate("activity_details/$activityId")
+                    },
+                    onCreateActivityClick = {
+                        navController.navigate("create_activity")
+                    }
+                )
+            }
+            composable(
+                route = "activity_details/{activityId}",
+                arguments = listOf(navArgument("activityId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val activityId = backStackEntry.arguments?.getString("activityId") ?: ""
+                ActivityDetailsScreen(
+                    activityId = activityId,
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+            composable("create_activity") {
+                CreateActivityScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onActivityCreated = {
+                    }
+                )
+            }
+            composable("activityList") {
+                ActivityScreen(
+                    navController,
+                    onActivityClick = { activityId ->
+                        navController.navigate("activity_details/$activityId")
+                    },
+                )
+            }
+            composable("home") {
+                HomeScreens(navController)
+            }
+            composable("login") {
+                LoginScreen(
+                    navController = navController,
+                    onGoogleSignIn = onGoogleSignIn
+                )
+            }
 
-        composable("register") {
-            com.example.activitymanager.RegisterScreen(navController)
+            composable("register") {
+                com.example.activitymanager.RegisterScreen(navController)
+            }
+            composable("Manage") {
+                ActivityManageScreen(navController)
+            }
+            composable("Dashboard") {
+                DashboardScreen(navController)
+            }
+            composable("forgot_password") {
+                ForgotPasswordScreen(navController)
+            }
+            composable("HomeScreen") {
+                HomeScreen(navController)
+            }
+            composable("Profile") {
+                ProfileScreen(navController)
+            }
+            composable("edit_activity") {
+                EditActivityScreen(
+                    navController,
+                    onNavigateBack = { navController.popBackStack() },
+                    onActivityCreated = { }
+                )
+            }
         }
-        composable("Manage") {
-            ActivityManageScreen(navController)
-        }
-        composable("Dashboard") {
-            DashboardScreen(navController)
-        }
-        composable("forgot_password") {
-            ForgotPasswordScreen(navController)
-        }
-        composable("HomeScreen") {
-            HomeScreen(navController)
-        }
-        composable("Profile") {
-            ProfileScreen(navController)
-        }
-        composable("edit_activity") {
-            EditActivityScreen(
-                navController,
-                onNavigateBack = { navController.popBackStack() },
-                onActivityCreated = { }
-            )
-        }
-
     }
 }
-
-
-
-
 
 
 fun createMockActivities(): List<Activity> {
@@ -258,6 +295,7 @@ fun createMockActivities(): List<Activity> {
             rating = 4.9,
             duration = "2h 30mins",
             participants = 1245,
+            participantsIDs = emptyList(),
             type = "Hiking",
             isFavorite = true,
             coordinates = LatLng(37.7749, -122.4194)  // San Francisco coordinates
@@ -277,6 +315,7 @@ fun createMockActivities(): List<Activity> {
             rating = 4.2,
             duration = "3h 30mins",
             participants = 2182,
+            participantsIDs = emptyList(),
             type = "Hiking",
             coordinates = LatLng(0.0, 0.0)  // Online course
         )

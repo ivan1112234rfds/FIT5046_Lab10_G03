@@ -14,8 +14,10 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Person
+
 import com.example.activitymanager.BottomNavItem
 import androidx.navigation.NavController
+
 
 @Composable
 fun BottomNavigationBar(
@@ -77,6 +79,40 @@ fun BottomNavigationBar(
             selected = selectedTab == "Profile",
             onClick = { navController.navigate("Profile") },
             modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun BottomNavItem(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(4.dp)
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.size(24.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (selected) Color(0xFF6366F1) else Color.Gray
+            )
+        }
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (selected) Color(0xFF6366F1) else Color.Gray
         )
     }
 }

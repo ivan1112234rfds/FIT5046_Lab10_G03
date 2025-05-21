@@ -12,8 +12,8 @@ dependencies {
     implementation("com.google.maps.android:maps-compose:2.15.0")
     implementation("com.google.android.libraries.places:places:3.2.0")
     implementation ("com.squareup.okhttp3:okhttp:4.9.3")
-    implementation ("com.squareup.okhttp3:okhttp-dnsoverhttps:4.9.3")
 
+    implementation ("com.squareup.okhttp3:okhttp-dnsoverhttps:4.9.3")
     // Import Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
     
@@ -43,6 +43,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0")
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("com.google.accompanist:accompanist-appcompat-theme:0.28.0")
+
 }
 android {
     namespace = "com.example.activitymanager"
