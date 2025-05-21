@@ -20,6 +20,7 @@ import com.example.activitymanager.mapper.Activity as ActivityModel
 import com.example.activitymanager.dao.UserDao
 import com.example.activitymanager.roomEntity.UserEntity
 import java.util.Date
+import java.util.Calendar
 
 class FirebaseHelper {
     private val auth: FirebaseAuth = Firebase.auth
@@ -386,5 +387,43 @@ class FirebaseHelper {
             Log.e(TAG, "Error fetching activities", e)
             emptyList()
         }
+    }
+
+    // get statistic data with quarter
+    suspend fun getActivityCountByQuarter(): Map<String, Int> {
+        val db = FirebaseFirestore.getInstance()
+        val snapshot = db.collection("activities").get().await()
+
+        val result = mutableMapOf(
+            "Q1" to 0,
+            "Q2" to 0,
+            "Q3" to 0,
+            "Q4" to 0
+        )
+
+        for (doc in snapshot.documents) {
+            val timestamp = doc.getTimestamp("date") ?: continue
+            val date = timestamp.toDate()
+            val calendar = Calendar.getInstance().apply { time = date }
+            val month = calendar.get(Calendar.MONTH) + 1
+            val quarter = (month - 1) / 3 + 1
+            val key = "Q$quarter"
+            result[key] = result.getOrDefault(key, 0) + 1
+        }
+
+        return result
+    }
+
+    // get statistic data with type
+    suspend fun getActivityCountByType(): Map<String, Int> {
+        val db = FirebaseFirestore.getInstance()
+        val snapshot = db.collection("activities").get().await()
+
+        val result = mutableMapOf<String, Int>()
+        for (doc in snapshot.documents) {
+            val type = doc.getString("type") ?: "Unknown"
+            result[type] = result.getOrDefault(type, 0) + 1
+        }
+        return result
     }
 } 
