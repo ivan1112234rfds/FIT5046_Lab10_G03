@@ -71,7 +71,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val firebaseHelper = remember { FirebaseHelper() }
     
-    // 从AuthManager获取登录状态
+    // Obtain the login status from AuthManager
     val isLoggedIn by AuthManager.isLoggedIn
     val currentAuthUser by AuthManager.currentUser
 
@@ -79,8 +79,8 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
         isLoading = true
         try {
             if (isLoggedIn && currentAuthUser != null) {
-                // 用户已登录，获取详细信息
-                val user = currentAuthUser // 将委托属性赋值给本地变量
+                // The user has logged in to obtain detailed information
+                val user = currentAuthUser
                 val uid = user?.uid ?: ""
                 
                 if (uid.isNotEmpty()) {
@@ -112,7 +112,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                     )
                 }
             } else {
-                // 用户未登录，重置数据
+                // The user is not logged in. Reset the data
                 userData = null
                 userPreferences = null
                 isLoading = false
@@ -304,7 +304,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 个人资料卡片
+                // Personal information card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -316,7 +316,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                                 .fillMaxWidth()
                                 .clickable {
                                     if (isLoggedIn) {
-                                        isEditing = !isEditing // 切换展开/折叠状态
+                                        isEditing = !isEditing
                                     } else {
                                         navController.navigate("login")
                                     }
@@ -329,7 +329,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                                     painter = painterResource(id = R.drawable.ic_edit),
                                     contentDescription = "Edit profile",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp) // 调整图标尺寸
+                                    modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
@@ -356,7 +356,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                                 .fillMaxWidth()
                                 .clickable {
                                     if (isLoggedIn) {
-                                        isPrefOpen = !isPrefOpen // 切换展开/折叠状态
+                                        isPrefOpen = !isPrefOpen
                                     } else {
                                         navController.navigate("login")
                                     }
@@ -369,7 +369,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                                     painter = painterResource(id = R.drawable.ic_settings),
                                     contentDescription = "Settings",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp) // 调整图标尺寸
+                                    modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
@@ -389,7 +389,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                // 登录/登出按钮
+                // Login/Logout button
                 Button(
                     onClick = {
                         if (isLoggedIn) {
@@ -417,7 +417,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
             }
         }
 
-        // 编辑个人资料对话框
+        // Edit your profile dialog box
         if (isEditing && isLoggedIn) {
             AlertDialog(
                 onDismissRequest = { isEditing = false },
@@ -445,7 +445,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
             )
         }
 
-        // 偏好设置对话框
+        // Preference Settings dialog box
         if (isPrefOpen && isLoggedIn) {
             AlertDialog(
                 onDismissRequest = { isPrefOpen = false },
