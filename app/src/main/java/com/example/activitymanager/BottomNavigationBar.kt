@@ -15,11 +15,13 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Person
 import com.example.activitymanager.BottomNavItem
+import androidx.navigation.NavController
 
 @Composable
 fun BottomNavigationBar(
     selectedTab: String,
-    onTabSelected: (String) -> Unit
+    onTabSelected: (String) -> Unit,
+    navController: NavController
 ) {
     BottomAppBar(
         tonalElevation = 8.dp,
@@ -29,14 +31,14 @@ fun BottomNavigationBar(
             label = "Home",
             icon = Icons.Default.Home,
             selected = selectedTab == "Home",
-            onClick = { onTabSelected("Home") },
+            onClick = { navController.navigate("HomeScreen") },
             modifier = Modifier.weight(1f)
         )
         BottomNavItem(
             label = "My Activity",
             icon = Icons.Default.MenuBook,
             selected = selectedTab == "My Activity",
-            onClick = { onTabSelected("My Activity") },
+            onClick = { navController.navigate("activities") },
             modifier = Modifier.weight(1f)
         )
 
@@ -48,7 +50,11 @@ fun BottomNavigationBar(
             contentAlignment = Alignment.Center
         ) {
             FloatingActionButton(
-                onClick = {  },
+                onClick = {
+                    if (navController.currentDestination?.route != "activityList") {
+                        navController.navigate("activityList")
+                    }
+                },
                 containerColor = Color(0xFF6366F1),
                 contentColor = Color.White,
                 elevation = FloatingActionButtonDefaults.elevation(4.dp)
@@ -61,7 +67,7 @@ fun BottomNavigationBar(
             label = "Manage",
             icon = Icons.Default.ChatBubble,
             selected = selectedTab == "Manage",
-            onClick = { onTabSelected("Manage") },
+            onClick = { navController.navigate("Manage") },
             modifier = Modifier.weight(1f)
         )
 
@@ -69,7 +75,7 @@ fun BottomNavigationBar(
             label = "Profile",
             icon = Icons.Default.Person,
             selected = selectedTab == "Profile",
-            onClick = { onTabSelected("Profile") },
+            onClick = { navController.navigate("Profile") },
             modifier = Modifier.weight(1f)
         )
     }

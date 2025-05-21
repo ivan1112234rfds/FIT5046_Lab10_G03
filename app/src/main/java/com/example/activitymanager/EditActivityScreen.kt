@@ -21,6 +21,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import com.example.activitymanager.AppDatabase
+import com.example.activitymanager.ZenQuoteService
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,6 +109,14 @@ fun EditActivityScreen(
         // get current username
         val userInfo = firebaseHelper.getUserinfoByUid(currentUserId)
         organizer = userInfo?.username ?: ""
+
+        val service = ZenQuoteService()
+        val quoteText = service.fetchQuoteText()
+        if (quoteText != null) {
+            Log.d("Quote", quoteText)
+        } else {
+            Log.e("Quote", "failed")
+        }
     }
 
     // val datePickerState = rememberDatePickerState()

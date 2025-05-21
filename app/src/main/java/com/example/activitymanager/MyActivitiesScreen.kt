@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.activitymanager.mapper.Activity
 import com.example.assignmentcode.BottomNavigationBar
@@ -55,12 +56,15 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyActivitiesScreen(onActivityClick: (String) -> Unit, onCreateActivityClick: () -> Unit) {
+fun MyActivitiesScreen(
+    navController: NavController,
+    onActivityClick: (String) -> Unit,
+    onCreateActivityClick: () -> Unit
+) {
     val activities = remember { createMockActivities() }
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = listOf("Upcoming", "Past", "All")
 
-    val navController = rememberNavController()
     var selectedTab by remember { mutableStateOf("Home") }
 
     val filteredActivities = when (selectedTabIndex) {
@@ -74,7 +78,8 @@ fun MyActivitiesScreen(onActivityClick: (String) -> Unit, onCreateActivityClick:
         bottomBar = {
             BottomNavigationBar(
                 selectedTab = selectedTab,
-                onTabSelected = {selectedTab = it}
+                onTabSelected = {selectedTab = it},
+                navController = navController
             )
         }, floatingActionButton = {
             FloatingActionButton(onClick = onCreateActivityClick) {

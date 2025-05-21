@@ -168,6 +168,7 @@ fun ActivityApp(
     NavHost(navController = navController, startDestination = "Home") {
         composable("activities") {
             MyActivitiesScreen(
+                navController,
                 onActivityClick = { activityId ->
                     navController.navigate("activity_details/$activityId")
                 },
