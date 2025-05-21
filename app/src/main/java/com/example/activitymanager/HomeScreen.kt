@@ -50,6 +50,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.dp
 
 // Add this new carousel component
 @Composable
@@ -119,6 +125,9 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     var username by remember { mutableStateOf("") }
     val context = LocalContext.current
     val firebaseHelper = remember { FirebaseHelper() }
+
+    var showMenu by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
     
     // Get login status from AuthManager
     val isLoggedIn by AuthManager.isLoggedIn
@@ -236,14 +245,74 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                     
                     Spacer(modifier = Modifier.weight(1f))
                     
-                    // 保留通知按钮
-                    IconButton(onClick = { /* Handle notification click event */ }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_notification),
-                            contentDescription = "Notifications",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                    // hamburg menu
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_notification),
+                                contentDescription = "Menu",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            offset = DpOffset(x = (-32).dp, y = 8.dp)
+                        ) {
+                            if (isLoggedIn) {
+                                DropdownMenuItem(
+                                    text = { Text("Logout") },
+                                    onClick = {
+                                        showMenu = false
+                                        showLogoutDialog = true
+                                    }
+                                )
+                            } else {
+                                DropdownMenuItem(
+                                    text = { Text("Login") },
+                                    onClick = {
+                                        showMenu = false
+                                        navController.navigate("login")
+                                    }
+                                )
+                            }
+
+                            DropdownMenuItem(
+                                text = { Text("Dashboard") },
+                                onClick = {
+                                    showMenu = false
+                                    navController.navigate("dashboard")
+                                }
+                            )
+                        }
+
+                        if (showLogoutDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showLogoutDialog = false },
+                                title = { Text("Confirm Logout") },
+                                text = { Text("Are you sure you want to log out?") },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        showLogoutDialog = false
+                                        firebaseHelper.signOut()
+                                        AuthManager.updateAuthState()
+                                        navController.navigate("login") {
+                                            popUpTo("HomeScreen") { inclusive = true }
+                                        }
+                                    }) {
+                                        Text("Yes")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showLogoutDialog = false }) {
+                                        Text("Cancel")
+                                    }
+                                }
+                            )
+                        }
                     }
+
                 }
             }
 
