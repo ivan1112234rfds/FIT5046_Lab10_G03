@@ -180,9 +180,6 @@ fun ActivityApp(
                 navController = navController,
                 onActivityClick = { activityId ->
                     navController.navigate("activity_details/$activityId")
-                },
-                onCreateActivityClick = {
-                    navController.navigate("create_activity")
                 }
             )
         }

@@ -279,7 +279,6 @@ fun BannerSection(navController: NavController) {
 
 @Composable
 fun ActivityCard(activity: Activity) {
-    // 根据活动类型选择图片
     val imageRes = when (activity.type) {
         "Movie" -> R.drawable.movie
         "Hiking" -> R.drawable.hiking
