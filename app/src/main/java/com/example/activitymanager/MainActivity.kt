@@ -48,9 +48,6 @@ import com.example.activitymanager.LoginScreen
 import com.example.activitymanager.RegisterScreen
 import com.example.activitymanager.HomeScreen
 import com.example.activitymanager.ProfileScreen
-import com.example.assignmentcode.BottomNavigationBar
-import com.example.fit5046assignment.HomeScreen
-import com.example.fit5046assignment.ProfileScreen
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.libraries.places.api.Places
@@ -287,36 +284,9 @@ fun createMockActivities(): List<Activity> {
             participants = 2182,
             participantsIDs = emptyList(),
             type = "Hiking",
-            coordinates = LatLng(0.0, 0.0)  // Online course
+            coordinates = LatLng(0.0, 0.0)
         )
     )
     return mockActivities
-}
-
-@Composable
-fun BottomNavItem(
-    label: String,
-    icon: ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (selected) Color(0xFF6366F1) else Color.Gray
-        )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            color = if (selected) Color(0xFF6366F1) else Color.Gray
-        )
-    }
 }
 

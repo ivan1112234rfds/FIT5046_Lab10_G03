@@ -31,8 +31,6 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import com.example.activitymanager.firebase.FirebaseHelper
 import com.example.activitymanager.mapper.Activity
-import com.example.assignmentcode.BottomNavigationBar
-
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
