@@ -37,6 +37,7 @@ import androidx.navigation.NavController
 import com.example.activitymanager.mapper.Activity
 import com.example.activitymanager.R
 import com.example.activitymanager.firebase.FirebaseHelper
+import com.example.activitymanager.firebase.AuthManager
 import com.example.activitymanager.BottomNavigationBar
 import com.example.activitymanager.AppDatabase
 import kotlinx.coroutines.Dispatchers
@@ -53,32 +54,38 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     var username by remember { mutableStateOf("") }
     val context = LocalContext.current
     val firebaseHelper = remember { FirebaseHelper() }
+    
+    // 从AuthManager获取登录状态
+    val isLoggedIn by AuthManager.isLoggedIn
+    val currentUser by AuthManager.currentUser
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isLoggedIn) {
         try {
-            val userDao = AppDatabase.getInstance(context).userDao()
-            val currentUser = withContext(Dispatchers.IO) {
-                userDao.getCurrentUser()
-            }
-            
-            if (currentUser != null && currentUser.username.isNotEmpty()) {
-                username = currentUser.username
-            } 
-
-            else if (firebaseHelper.getCurrentUser() != null) {
-                val uid = firebaseHelper.getCurrentUser()?.uid ?: ""
-                firebaseHelper.getUserData(
-                    uid = uid,
-                    onSuccess = { user ->
-                        username = user.username
-                    },
-                    onError = { errorMsg ->
-                        username = "User"
-                    }
-                )
+            if (isLoggedIn) {
+                // 获取当前用户ID
+                val user = currentUser // 将委托属性赋值给本地变量
+                val uid = user?.uid ?: ""
+                
+                if (uid.isNotEmpty()) {
+                    // 直接从Firebase数据库获取用户信息
+                    firebaseHelper.getUserData(
+                        uid = uid,
+                        onSuccess = { user ->
+                            username = user.username // 使用数据库中的username
+                        },
+                        onError = { errorMsg ->
+                            username = user?.username ?: "User" // 降级使用AuthManager中的值
+                        }
+                    )
+                } else {
+                    username = ""
+                }
+            } else {
+                // 用户未登录
+                username = ""
             }
         } catch (e: Exception) {
-            username = "User"
+            username = ""
         }
     }
     
@@ -110,7 +117,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Hi, ${if (username.isNotEmpty()) username else "Fan"}",
+                        text = if (isLoggedIn && username.isNotEmpty()) "Hi, $username" else "Not Logged In",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -199,7 +206,12 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                             .padding(horizontal = 16.dp)
                     ) {
                         items(activities) { activity ->
-                            ActivityCard(activity)
+                            ActivityCard(
+                                activity = activity,
+                                onActivityClick = { activityId ->
+                                    navController.navigate("activity_details/$activityId")
+                                }
+                            )
                         }
                     }
                 }
@@ -263,7 +275,7 @@ fun BannerSection(navController: NavController) {
 }
 
 @Composable
-fun ActivityCard(activity: Activity) {
+fun ActivityCard(activity: Activity, onActivityClick: (String) -> Unit = {}) {
     val imageRes = when (activity.type) {
         "Movie" -> R.drawable.movie
         "Hiking" -> R.drawable.hiking
@@ -273,7 +285,8 @@ fun ActivityCard(activity: Activity) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .clickable { onActivityClick(activity.id) },
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Row(
