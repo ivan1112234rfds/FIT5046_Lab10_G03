@@ -1,16 +1,12 @@
 package com.example.activitymanager
 
 import android.app.Application
-import com.example.activitymanager.firebase.AuthManager
 import androidx.work.*
 import java.util.concurrent.TimeUnit
 
-class ActivityManagerApplication : Application() {
+class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        
-        // 初始化AuthManager
-        AuthManager.initialize()
 
         // 创建定时任务请求
         val workRequest = PeriodicWorkRequestBuilder<StatisticWorker>(
@@ -25,4 +21,4 @@ class ActivityManagerApplication : Application() {
             workRequest
         )
     }
-} 
+}
