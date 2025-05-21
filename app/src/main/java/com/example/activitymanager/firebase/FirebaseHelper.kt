@@ -150,28 +150,24 @@ class FirebaseHelper {
             val uid = auth.currentUser?.uid
             Log.d(TAG, "Login successful: ${auth.currentUser?.uid}")
             if (uid != null) {
-                // 获取用户的完整信息
                 try {
                     val userSnapshot = usersCollection.document(uid).get().await()
                     val user = userSnapshot.toObject(User::class.java)
                     
                     if (user != null) {
-                        // 保存更多用户信息到本地数据库
                         val userEntity = UserEntity(
                             uid = uid, 
                             email = email,
-                            username = user.username // 保存用户名
+                            username = user.username
                         )
                         userDao.insertUser(userEntity)
                         Log.d(TAG, "User data saved to local database: ${user.username}")
                     } else {
-                        // 如果获取不到用户信息，仍然保存基本信息
                         val userEntity = UserEntity(uid = uid, email = email)
                         userDao.insertUser(userEntity)
                         Log.d(TAG, "Basic user data saved to local database")
                     }
                 } catch (e: Exception) {
-                    // 如果获取用户信息失败，仍然保存基本信息
                     Log.e(TAG, "Failed to get user data from Firestore", e)
                     val userEntity = UserEntity(uid = uid, email = email)
                     userDao.insertUser(userEntity)
