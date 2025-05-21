@@ -31,7 +31,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.example.activitymanager.AppDatabase
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     navController: NavController,
@@ -48,238 +53,271 @@ fun LoginScreen(
     val firebaseHelper = remember { FirebaseHelper() }
     val coroutineScope = rememberCoroutineScope()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Welcome!",
-            style = MaterialTheme.typography.headlineLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        Text(
-            text = "Sign in to continue!",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                val icon = if (passwordVisible)
-                    Icons.Default.Visibility
-                else
-                    Icons.Default.VisibilityOff
-
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF5A6DF9))
-                }
-            }
-        )
-        ClickableText(
-            text = AnnotatedString("Forgot password?"),
-            onClick = { navController.navigate("forgot_password") },
-            style = LocalTextStyle.current.copy(
-                color = Color(0xFF5A6DF9),
-                fontSize = 14.sp,
-                textAlign = TextAlign.End
-            ),
-            modifier = Modifier
-                .align(Alignment.End)
-                .padding(top = 4.dp, bottom = 16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Checkbox(
-                checked = rememberMe,
-                onCheckedChange = { rememberMe = it },
-                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF5A6DF9))
-            )
-            Text(text = "Remember me")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Display error message
-        errorMessage?.let {
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
-
-        Button(
-            onClick = {
-                if (validateInputs(email, password)) {
-                    isLoading = true
-                    errorMessage = null
-                    val userDao = AppDatabase.getInstance(context).userDao()
-                    
-                    coroutineScope.launch(Dispatchers.IO) {
-                        firebaseHelper.loginUser(
-                            email = email,
-                            password = password,
-                            userDao = userDao,
-                            onSuccess = {
-                                isLoading = false
-                                // Show toast on main thread
-                                CoroutineScope(Dispatchers.Main).launch {
-                                    Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
-                                    navController.navigate("HomeScreen") {
-                                        popUpTo("login") { inclusive = true }
-                                    }
-                                }
-                            },
-                            onError = { error ->
-                                isLoading = false
-                                errorMessage = error
-                            }
-                        )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {},
+                actions = {
+                    TextButton(onClick = {
+                        navController.navigate("HomeScreen") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    }) {
+                        Text("Skip Login", color = Color(0xFF5A6DF9))
                     }
                 }
-            },
+            )
+        }
+    ) { innerPadding ->
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            enabled = !isLoading
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(24.dp)
+            // background pic
+            Image(
+                painter = painterResource(id = R.drawable.login_background),
+                contentDescription = "Background",
+                contentScale = ContentScale.Crop,
+                alpha = 0.30f, // Set high transparency（0.0 ~ 1.0）
+                modifier = Modifier.fillMaxSize()
+            )
+
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Welcome!",
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
-            } else {
-                Text("Sign in", color = Color.White)
-            }
-        }
+                Text(
+                    text = "Sign in to continue!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
-            text = "- OR -",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-        Button(
-            onClick = { 
-                // 修改模拟器谷歌登录，确保它使用全局Firebase Auth实例
-                coroutineScope.launch(Dispatchers.IO) {
-                    try {
-                        // 获取全局Firebase Auth实例（不创建新的）
-                        val auth = Firebase.auth
-                        
-                        // 登录前检查状态
-                        firebaseHelper.checkAuthState()
-                        
-                        // 如果需要，临时连接到模拟器
-                        val usingEmulator = true
-                        if (usingEmulator) {
-                            try {
-                                // 注意：这会修改全局Firebase Auth实例
-                                auth.useEmulator("10.0.2.2", 9099)
-                                Log.d("LoginScreen", "Connected to Auth Emulator for Google login")
-                            } catch (e: Exception) {
-                                Log.e("LoginScreen", "Failed to connect to Auth Emulator", e)
-                            }
-                        }
-                        
-                        // 使用测试账号进行模拟登录
-                        val testEmail = "test@gmail.com"
-                        val testPassword = "admin123456!" // 模拟器不需要真实密码
-                        
-                        try {
-                            // 使用全局Firebase Auth实例进行登录
-                            auth.signInWithEmailAndPassword(testEmail, testPassword)
-                                .addOnSuccessListener {
-                                    // 登录成功后，确认currentUser已设置
-                                    val user = auth.currentUser
-                                    Log.d("LoginScreen", "Emulator Google login successful! User: ${user?.uid}")
-                                    
-                                    // 登录后再次检查状态
-                                    firebaseHelper.checkAuthState()
-                                    
-                                    CoroutineScope(Dispatchers.Main).launch {
-                                        Toast.makeText(context, "Google login successful!", Toast.LENGTH_SHORT).show()
-                                        navController.navigate("HomeScreen") {
-                                            popUpTo("login") { inclusive = true }
-                                        }
-                                    }
-                                }
-                                .addOnFailureListener { e ->
-                                    CoroutineScope(Dispatchers.Main).launch {
-                                        Toast.makeText(context, "Google login failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                                        Toast.makeText(context, "Please create test user in Auth Emulator", Toast.LENGTH_LONG).show()
-                                    }
-                                }
-                        } catch (e: Exception) {
-                            CoroutineScope(Dispatchers.Main).launch {
-                                Toast.makeText(context, "Login error: ${e.message}", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    } catch (e: Exception) {
-                        CoroutineScope(Dispatchers.Main).launch {
-                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        val icon = if (passwordVisible)
+                            Icons.Default.Visibility
+                        else
+                            Icons.Default.VisibilityOff
+
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF5A6DF9))
                         }
                     }
+                )
+                ClickableText(
+                    text = AnnotatedString("Forgot password?"),
+                    onClick = { navController.navigate("forgot_password") },
+                    style = LocalTextStyle.current.copy(
+                        color = Color(0xFF5A6DF9),
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.End
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(top = 4.dp, bottom = 16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = rememberMe,
+                        onCheckedChange = { rememberMe = it },
+                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF5A6DF9))
+                    )
+                    Text(text = "Remember me")
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE3F2FD))
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.google),
-                contentDescription = "Google",
-                modifier = Modifier.size(18.dp),
-                tint = Color.Unspecified
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Continue with Google (Test)", color = Color.Black)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Display error message
+                errorMessage?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        if (validateInputs(email, password)) {
+                            isLoading = true
+                            errorMessage = null
+                            val userDao = AppDatabase.getInstance(context).userDao()
+
+                            coroutineScope.launch(Dispatchers.IO) {
+                                firebaseHelper.loginUser(
+                                    email = email,
+                                    password = password,
+                                    userDao = userDao,
+                                    onSuccess = {
+                                        isLoading = false
+                                        // Show toast on main thread
+                                        CoroutineScope(Dispatchers.Main).launch {
+                                            Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
+                                            navController.navigate("HomeScreen") {
+                                                popUpTo("login") { inclusive = true }
+                                            }
+                                        }
+                                    },
+                                    onError = { error ->
+                                        isLoading = false
+                                        errorMessage = error
+                                    }
+                                )
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Text("Sign in", color = Color.White)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "- OR -",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        // 修改模拟器谷歌登录，确保它使用全局Firebase Auth实例
+                        coroutineScope.launch(Dispatchers.IO) {
+                            try {
+                                // 获取全局Firebase Auth实例（不创建新的）
+                                val auth = Firebase.auth
+
+                                // 登录前检查状态
+                                firebaseHelper.checkAuthState()
+
+                                // 如果需要，临时连接到模拟器
+                                val usingEmulator = true
+                                if (usingEmulator) {
+                                    try {
+                                        // 注意：这会修改全局Firebase Auth实例
+                                        auth.useEmulator("10.0.2.2", 9099)
+                                        Log.d("LoginScreen", "Connected to Auth Emulator for Google login")
+                                    } catch (e: Exception) {
+                                        Log.e("LoginScreen", "Failed to connect to Auth Emulator", e)
+                                    }
+                                }
+
+                                // 使用测试账号进行模拟登录
+                                val testEmail = "test@gmail.com"
+                                val testPassword = "admin123456!" // 模拟器不需要真实密码
+
+                                try {
+                                    // 使用全局Firebase Auth实例进行登录
+                                    auth.signInWithEmailAndPassword(testEmail, testPassword)
+                                        .addOnSuccessListener {
+                                            // 登录成功后，确认currentUser已设置
+                                            val user = auth.currentUser
+                                            Log.d("LoginScreen", "Emulator Google login successful! User: ${user?.uid}")
+
+                                            // 登录后再次检查状态
+                                            firebaseHelper.checkAuthState()
+
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                Toast.makeText(context, "Google login successful!", Toast.LENGTH_SHORT).show()
+                                                navController.navigate("HomeScreen") {
+                                                    popUpTo("login") { inclusive = true }
+                                                }
+                                            }
+                                        }
+                                        .addOnFailureListener { e ->
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                Toast.makeText(context, "Google login failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, "Please create test user in Auth Emulator", Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+                                } catch (e: Exception) {
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        Toast.makeText(context, "Login error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE3F2FD))
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.google),
+                        contentDescription = "Google",
+                        modifier = Modifier.size(18.dp),
+                        tint = Color.Unspecified
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Continue with Google (Test)", color = Color.Black)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                ClickableText(
+                    text = AnnotatedString("Not a member? Register now!"),
+                    onClick = { navController.navigate("register") },
+                    style = LocalTextStyle.current.copy(
+                        color = Color(0xFF5A6DF9),
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
+                )
+            }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        ClickableText(
-            text = AnnotatedString("Not a member? Register now!"),
-            onClick = { navController.navigate("register") },
-            style = LocalTextStyle.current.copy(
-                color = Color(0xFF5A6DF9),
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center
-            )
-        )
     }
 }
 
