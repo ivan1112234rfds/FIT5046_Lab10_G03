@@ -45,7 +45,8 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
         bottomBar = {
             BottomNavigationBar(
                 selectedTab = selectedTab,
-                onTabSelected = {selectedTab = it}
+                onTabSelected = {selectedTab = it},
+                navController = navController
             )
         }
     ) {

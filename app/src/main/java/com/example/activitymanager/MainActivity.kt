@@ -186,14 +186,18 @@ fun ActivityApp(
     onGoogleSignIn: () -> Unit
 ) {
     val navController = rememberNavController()
-    val navBackStackEntry = navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry.value?.destination?.route ?:"Home"
-    Scaffold(
-        bottomBar = {
-            BottomNavigationBar(
-                selectedTab = currentRoute,
-                onTabSelected = {route ->
-                    navigateToTab(navController, route)
+
+
+    NavHost(navController = navController, startDestination = "Home") {
+        composable("activities") {
+            MyActivitiesScreen(
+                navController,
+                onActivityClick = { activityId ->
+                    navController.navigate("activity_details/$activityId")
+                },
+                onCreateActivityClick = {
+                    navController.navigate("create_activity")
+
                 }
             )
         }
