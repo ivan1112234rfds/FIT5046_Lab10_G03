@@ -67,6 +67,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.People
 import androidx.compose.runtime.rememberCoroutineScope
 import com.example.activitymanager.firebase.FirebaseHelper
 import com.example.activitymanager.mapper.Activity
@@ -202,7 +203,7 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Star,
+                                imageVector = Icons.Default.People,
                                 contentDescription = null,
                                 tint = Color(0xFFFFC107)
                             )
@@ -210,7 +211,7 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                             Spacer(modifier = Modifier.width(4.dp))
 
                             Text(
-                                text = "${activity.rating} • ${activity.participants} participants",
+                                text = "${activity.participants} participants",
                                 fontSize = 14.sp
                             )
                         }
