@@ -1,4 +1,4 @@
-package com.example.assignmentcode.ui.theme
+package com.example.activitymanager.ui.theme
 
 import android.app.Activity
 import android.os.Build
@@ -35,7 +35,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun AssignmentCodeTheme(
+fun ActivityManagerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,

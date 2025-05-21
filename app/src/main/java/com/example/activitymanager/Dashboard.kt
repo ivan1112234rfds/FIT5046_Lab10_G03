@@ -18,7 +18,7 @@ import com.github.mikephil.charting.data.*
 import androidx.compose.runtime.*
 import androidx.navigation.NavController
 import androidx.navigation.Navigator
-import com.example.assignmentcode.BottomNavigationBar
+import com.example.activitymanager.BottomNavigationBar
 
 @Composable
 fun DashboardScreen(navController: NavController) {

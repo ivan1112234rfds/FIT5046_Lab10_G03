@@ -65,6 +65,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.People
@@ -74,6 +75,9 @@ import com.example.activitymanager.mapper.Activity
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,8 +173,22 @@ fun ActivityDetailsScreen(activityId: String, onBackClick: () -> Unit) {
                         .fillMaxWidth()
                         .height(200.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFE0E5FF))
-                )
+                        .background(Color(0xFFE0E5FF)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val imageRes = when (activity.type?.lowercase() ?: "") {
+                        "movie" -> R.drawable.movie
+                        "hiking" -> R.drawable.hiking
+                        else -> R.drawable.pic1
+                    }
+                    
+                    Image(
+                        painter = painterResource(id = imageRes),
+                        contentDescription = "Activity Image",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
             }

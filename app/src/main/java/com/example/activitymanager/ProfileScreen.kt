@@ -1,4 +1,4 @@
-package com.example.fit5046assignment
+package com.example.activitymanager
 
 import android.app.DatePickerDialog
 import androidx.compose.foundation.Image
@@ -29,27 +29,39 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import com.example.activitymanager.R
-import com.example.assignmentcode.BottomNavigationBar
+import com.example.activitymanager.firebase.FirebaseHelper
+import com.example.activitymanager.firebase.AuthManager
+import com.example.activitymanager.model.User
+import com.example.activitymanager.model.UserPreferences
+import com.example.activitymanager.BottomNavigationBar
+import kotlinx.coroutines.launch
 import java.util.Calendar
+import com.example.activitymanager.AppDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.LifecycleOwner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
-
     var isEditing by remember { mutableStateOf(false) }
     var isPrefOpen by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf("Profile") }
+    var isLoading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+    
+    var userData by remember { mutableStateOf<User?>(null) }
+    var userPreferences by remember { mutableStateOf<UserPreferences?>(null) }
 
-
-    var name by remember { mutableStateOf("Fan") }
-    var address by remember { mutableStateOf("Clayton, Melbourne") }
-    var phone by remember { mutableStateOf("123-456-7890") }
-    var birthday by remember { mutableStateOf("1990-01-01") }
-    var email by remember { mutableStateOf("fan@student.monash.edu") }
+    var name by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var birthday by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var avatarResId by remember { mutableStateOf(R.drawable.placeholder_avatar) }
-
 
     val allTypes = listOf("Hiking", "Biking", "Movies", "Poker")
     var selectedType by remember { mutableStateOf(allTypes.first()) }
@@ -57,8 +69,72 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
     var area by remember { mutableStateOf("") }
 
     val context = LocalContext.current
+    val firebaseHelper = remember { FirebaseHelper() }
+    
+    // 从AuthManager获取登录状态
+    val isLoggedIn by AuthManager.isLoggedIn
+    val currentAuthUser by AuthManager.currentUser
+
+    LaunchedEffect(isLoggedIn) {
+        isLoading = true
+        try {
+            if (isLoggedIn && currentAuthUser != null) {
+                // 用户已登录，获取详细信息
+                val user = currentAuthUser // 将委托属性赋值给本地变量
+                val uid = user?.uid ?: ""
+                
+                if (uid.isNotEmpty()) {
+                    firebaseHelper.getUserData(
+                        uid = uid,
+                        onSuccess = { user ->
+                            userData = user
+                            name = user.username
+                            email = user.email
+                            birthday = user.birthday
+                            isLoading = false
+                        },
+                        onError = { errorMsg ->
+                            error = errorMsg
+                            isLoading = false
+                        }
+                    )
+                    
+                    firebaseHelper.getUserPreferences(
+                        uid = uid,
+                        onSuccess = { preferences ->
+                            userPreferences = preferences
+                            if (preferences.activityType.isNotEmpty()) {
+                                selectedType = preferences.activityType
+                            }
+                            area = preferences.activityArea
+                        },
+                        onError = { /* Handle errors and use the default values */ }
+                    )
+                }
+            } else {
+                // 用户未登录，重置数据
+                userData = null
+                userPreferences = null
+                isLoading = false
+            }
+        } catch (e: Exception) {
+            error = e.message
+            isLoading = false
+        }
+    }
+
     fun showDatePicker() {
         val cal = Calendar.getInstance()
+        if (birthday.isNotEmpty()) {
+            try {
+                val parts = birthday.split("-")
+                if (parts.size == 3) {
+                    cal.set(parts[0].toInt(), parts[1].toInt() - 1, parts[2].toInt())
+                }
+            } catch (e: Exception) {
+            }
+        }
+        
         DatePickerDialog(
             context,
             { _, y, m, d -> birthday = "$y-${m + 1}-$d" },
@@ -66,6 +142,101 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
             cal.get(Calendar.MONTH),
             cal.get(Calendar.DAY_OF_MONTH)
         ).show()
+    }
+    
+    fun saveUserProfile() {
+        isLoading = true
+        val uid = userData?.uid ?: firebaseHelper.getCurrentUser()?.uid ?: ""
+        
+        if (uid.isEmpty()) {
+            error = "The user ID cannot be obtainedD"
+            isLoading = false
+            return
+        }
+        
+        val updatedUser = User(
+            uid = uid,
+            username = name,
+            nickname = name,
+            email = email,
+            birthday = birthday,
+            gender = userData?.gender ?: "",
+            age = userData?.age ?: ""
+        )
+        
+        val scope = (context as LifecycleOwner).lifecycleScope
+        scope.launch {
+            try {
+                firebaseHelper.updateUserData(
+                    user = updatedUser,
+                    onSuccess = {
+                        userData = updatedUser
+                        isLoading = false
+                        isEditing = false
+                    },
+                    onError = { errorMessage ->
+                        error = errorMessage
+                        isLoading = false
+                    }
+                )
+            } catch (e: Exception) {
+                error = e.message
+                isLoading = false
+            }
+        }
+    }
+    
+    fun savePreferences() {
+        isLoading = true
+        val uid = userData?.uid ?: firebaseHelper.getCurrentUser()?.uid ?: ""
+        
+        if (uid.isEmpty()) {
+            error = "The user ID cannot be obtained"
+            isLoading = false
+            return
+        }
+        
+        val updatedPreferences = UserPreferences(
+            uid = uid,
+            activityType = selectedType,
+            activityArea = area
+        )
+        
+        val scope = (context as LifecycleOwner).lifecycleScope
+        scope.launch {
+            try {
+                firebaseHelper.updateUserPreferences(
+                    preferences = updatedPreferences,
+                    onSuccess = {
+                        userPreferences = updatedPreferences
+                        isLoading = false
+                        isPrefOpen = false
+                    },
+                    onError = { errorMessage ->
+                        error = errorMessage
+                        isLoading = false
+                    }
+                )
+            } catch (e: Exception) {
+                error = e.message
+                isLoading = false
+            }
+        }
+    }
+    
+    fun logout() {
+        firebaseHelper.signOut()
+        AuthManager.updateAuthState()
+
+        val scope = (context as LifecycleOwner).lifecycleScope
+        scope.launch {
+            withContext(Dispatchers.IO) {
+                AppDatabase.getInstance(context).clearAllTables()
+            }
+            navController.navigate("login") {
+                popUpTo("Profile") { inclusive = true }
+            }
+        }
     }
 
     Scaffold(
@@ -77,203 +248,262 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(innerPadding)
-                .padding(16.dp)
-        ) {
-
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                modifier = Modifier.fillMaxWidth()
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                CircularProgressIndicator()
+            }
+        } else {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = avatarResId),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                        painter = painterResource(
+                            id = if (isLoggedIn) R.drawable.placeholder_avatar 
+                                else R.drawable.no_login
+                        ),
+                        contentDescription = "Profile Picture",
                         modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(Color.Gray, CircleShape)
+                            .size(100.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
                     )
-                    Spacer(Modifier.height(12.dp))
-                    Text(name, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text(email, fontSize = 16.sp, color = Color.Gray)
                 }
-            }
 
-            Spacer(Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
+                Text(
+                    text = if (isLoggedIn) userData?.username ?: "User" else "Not Logged In",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    // Edit Profile
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { isEditing = !isEditing }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_edit),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Edit Profile",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(if (isEditing) "Collapse" else "Expand", fontSize = 14.sp, color = Color.Gray)
-                    }
+                if (isLoggedIn && email.isNotEmpty()) {
+                    Text(
+                        text = email,
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
 
-                    if (isEditing) {
-                        Spacer(Modifier.height(12.dp))
-                        Column {
-                            TextFieldWithLabel("Name", name) { name = it }
-                            TextFieldWithLabel("Address", address) { address = it }
-                            TextFieldWithLabel("Phone", phone) { phone = it }
-                            BirthdayPickerField("Birthday", birthday) { showDatePicker() }
-                            TextFieldWithLabel("Email", email) { email = it }
-                            AvatarUploadField("Avatar") { avatarResId = R.drawable.placeholder_avatar2 }
+                Spacer(modifier = Modifier.height(24.dp))
 
-                            Spacer(Modifier.height(12.dp))
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                Button(
-                                    onClick = { isEditing = false },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF87171))
-                                ) { Text("Cancel") }
-                                Spacer(Modifier.width(8.dp))
-                                Button(
-                                    onClick = { isEditing = false },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF60A5FA))
-                                ) { Text("Save") }
+                // 个人资料卡片
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (isLoggedIn) {
+                                        isEditing = !isEditing // 切换展开/折叠状态
+                                    } else {
+                                        navController.navigate("login")
+                                    }
+                                },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_edit),
+                                    contentDescription = "Edit profile",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp) // 调整图标尺寸
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Edit Profile",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
+                            Text(
+                                text = if (isEditing) "Collapse" else "Expand",
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        Divider(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp)
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (isLoggedIn) {
+                                        isPrefOpen = !isPrefOpen // 切换展开/折叠状态
+                                    } else {
+                                        navController.navigate("login")
+                                    }
+                                },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_settings),
+                                    contentDescription = "Settings",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp) // 调整图标尺寸
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Preference Setting",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Text(
+                                text = if (isPrefOpen) "Collapse" else "Expand",
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
                         }
                     }
+                }
 
-                    Spacer(Modifier.height(16.dp))
-                    Divider(color = Color.LightGray, thickness = 1.dp)
-                    Spacer(Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(48.dp))
 
-                    // Preference Setting
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { isPrefOpen = !isPrefOpen }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_settings),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Preference Setting",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(if (isPrefOpen) "Collapse" else "Expand", fontSize = 14.sp, color = Color.Gray)
+                // 登录/登出按钮
+                Button(
+                    onClick = {
+                        if (isLoggedIn) {
+                            logout()
+                        } else {
+                            navController.navigate("login")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isLoggedIn) 
+                            MaterialTheme.colorScheme.error 
+                        else 
+                            MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(
+                        text = if (isLoggedIn) "Logout" else "Login",
+                        fontSize = 16.sp
+                    )
+                }
+            }
+        }
+
+        // 编辑个人资料对话框
+        if (isEditing && isLoggedIn) {
+            AlertDialog(
+                onDismissRequest = { isEditing = false },
+                title = { Text("Edit Profile") },
+                text = {
+                    Column {
+                        TextFieldWithLabel("Name", name) { name = it }
+                        TextFieldWithLabel("Address", address) { address = it }
+                        TextFieldWithLabel("Phone", phone) { phone = it }
+                        BirthdayPickerField("Birthday", birthday) { showDatePicker() }
+                        TextFieldWithLabel("Email", email) { email = it }
+                        AvatarUploadField("Avatar") { avatarResId = R.drawable.placeholder_avatar2 }
                     }
+                },
+                confirmButton = {
+                    Button(onClick = { saveUserProfile() }) {
+                        Text("Save")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { isEditing = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
 
-                    if (isPrefOpen) {
-                        Spacer(Modifier.height(12.dp))
-                        Column {
-
-                            Text("Activity type", fontWeight = FontWeight.SemiBold)
-
-                            ExposedDropdownMenuBox(
-                                expanded = typeDropdownExpanded,
-                                onExpandedChange = { typeDropdownExpanded = !typeDropdownExpanded },
-                                modifier = Modifier.fillMaxWidth())
-                            {
-                                TextField(
-                                    value = selectedType,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    trailingIcon = {
-                                        ExposedDropdownMenuDefaults.TrailingIcon(typeDropdownExpanded)
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { typeDropdownExpanded = !typeDropdownExpanded },
-                                    colors = TextFieldDefaults.colors(
-                                        unfocusedContainerColor = Color(0xFFF3F4F6),
-                                        disabledContainerColor = Color(0xFFF3F4F6)
-                                    )
+        // 偏好设置对话框
+        if (isPrefOpen && isLoggedIn) {
+            AlertDialog(
+                onDismissRequest = { isPrefOpen = false },
+                title = { Text("Preference Settings") },
+                text = {
+                    Column {
+                        Text("Activity type", fontWeight = FontWeight.SemiBold)
+                        ExposedDropdownMenuBox(
+                            expanded = typeDropdownExpanded,
+                            onExpandedChange = { typeDropdownExpanded = !typeDropdownExpanded },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            TextField(
+                                value = selectedType,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(typeDropdownExpanded)
+                                },
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth(),
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedContainerColor = Color(0xFFF3F4F6),
+                                    disabledContainerColor = Color(0xFFF3F4F6)
                                 )
-                                ExposedDropdownMenu(
-                                    expanded = typeDropdownExpanded,
-                                    onDismissRequest = { typeDropdownExpanded = false }
-                                ) {
-                                    allTypes.forEach { t ->
-                                        DropdownMenuItem(
-                                            text = { Text(t) },
-                                            onClick = {
-                                                selectedType = t
-                                                typeDropdownExpanded = false
-                                            }
-                                        )
-                                    }
+                            )
+                            ExposedDropdownMenu(
+                                expanded = typeDropdownExpanded,
+                                onDismissRequest = { typeDropdownExpanded = false }
+                            ) {
+                                allTypes.forEach { t ->
+                                    DropdownMenuItem(
+                                        text = { Text(t) },
+                                        onClick = {
+                                            selectedType = t
+                                            typeDropdownExpanded = false
+                                        }
+                                    )
                                 }
                             }
-
-                            Spacer(Modifier.height(12.dp))
-                            TextFieldWithLabel("Activity area", area) { area = it }
-
-                            Spacer(Modifier.height(12.dp))
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                Button(
-                                    onClick = { isPrefOpen = false },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF87171))
-                                ) { Text("Cancel") }
-                                Spacer(Modifier.width(8.dp))
-                                Button(
-                                    onClick = { isPrefOpen = false },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF60A5FA))
-                                ) { Text("Save") }
-                            }
                         }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        TextFieldWithLabel("Activity area", area) { area = it }
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { savePreferences() }) {
+                        Text("Save")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { isPrefOpen = false }) {
+                        Text("Cancel")
                     }
                 }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-
-            Button(
-                onClick = {  },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Logout", color = Color.White)
-            }
+            )
         }
     }
 }
@@ -281,7 +511,9 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
 
 @Composable
 fun TextFieldWithLabel(label: String, value: String, onValueChange: (String) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+    Column(Modifier
+        .fillMaxWidth()
+        .padding(bottom = 12.dp)) {
         Text(label, fontWeight = FontWeight.SemiBold)
         TextField(
             value = value,
@@ -297,7 +529,9 @@ fun TextFieldWithLabel(label: String, value: String, onValueChange: (String) -> 
 
 @Composable
 fun BirthdayPickerField(label: String, birthday: String, onPickDate: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+    Column(Modifier
+        .fillMaxWidth()
+        .padding(bottom = 12.dp)) {
         Text(label, fontWeight = FontWeight.SemiBold)
         OutlinedTextField(
             value = birthday,
@@ -321,7 +555,9 @@ fun BirthdayPickerField(label: String, birthday: String, onPickDate: () -> Unit)
 
 @Composable
 fun AvatarUploadField(label: String, onUploadClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+    Column(Modifier
+        .fillMaxWidth()
+        .padding(bottom = 12.dp)) {
         Text(label, fontWeight = FontWeight.SemiBold)
         Button(
             onClick = onUploadClick,

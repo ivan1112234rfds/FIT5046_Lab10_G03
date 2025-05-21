@@ -1,4 +1,4 @@
-package com.example.assignmentcode
+package com.example.activitymanager
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
