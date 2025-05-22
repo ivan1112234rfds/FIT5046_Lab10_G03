@@ -249,6 +249,7 @@ fun ActivityManageScreen(navController : NavController) {
                                     set("organizer", activity.organizer ?: "")
                                     set("type", activity.type ?: "")
                                     set("participants", activity.participants?.toString() ?: "0")
+                                    set("participantsIDs", activity.participantsIDs ?: emptyList())
                                     set("coordinates", mapOf(
                                         "latitude" to activity.coordinates?.latitude,
                                         "longitude" to activity.coordinates?.longitude
