@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
-import com.example.assignmentcode.BottomNavigationBar
+import com.example.activitymanager.BottomNavigationBar
 import androidx.compose.ui.platform.LocalContext
 import com.example.activitymanager.firebase.FirebaseHelper
 import com.example.activitymanager.mapper.Activity
@@ -39,6 +39,7 @@ import androidx.compose.runtime.*
 import androidx.compose.foundation.lazy.items
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.example.activitymanager.ui.theme.ActivityManagerTheme
 import com.google.android.gms.maps.model.LatLng
 import java.util.UUID
 
@@ -232,10 +233,11 @@ fun ActivityManageScreen(navController : NavController) {
                             title = activity.title ?: "",
                             author = activity.organizer ?: "",
                             rating = activity.rating ?: 0.0,
-                            duration = activity.duration ?: "",
+                            duration = formatDuration(activity.duration ?: ""),
                             participants = activity.participants ?: 0,
                             liked = false,
                             type = activity.type ?: "",
+                            showActions = (selectedTabIndex == 0),
                             onEditClick = {
                                 navController.currentBackStackEntry?.savedStateHandle?.apply {
                                     set("id", activity.id ?: "")
@@ -247,6 +249,7 @@ fun ActivityManageScreen(navController : NavController) {
                                     set("organizer", activity.organizer ?: "")
                                     set("type", activity.type ?: "")
                                     set("participants", activity.participants?.toString() ?: "0")
+                                    set("participantsIDs", activity.participantsIDs ?: emptyList())
                                     set("coordinates", mapOf(
                                         "latitude" to activity.coordinates?.latitude,
                                         "longitude" to activity.coordinates?.longitude
@@ -289,6 +292,7 @@ fun ActivityCard(
     participants: Int,
     liked: Boolean,
     type: String,
+    showActions: Boolean = true,
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {}
 ) {
@@ -342,40 +346,54 @@ fun ActivityCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "$rating • $duration",
+                        text = "$rating  •  $duration",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )
                 }
                 Text(
-                    text = "$participants participants",
+                    text = "$participants participants limit",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
             }
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.padding(start = 12.dp)
-            ) {
-                IconButton(onClick = onEditClick) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                IconButton(onClick = onDeleteClick) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(24.dp)
-                    )
+            if (showActions) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(start = 12.dp)
+                ) {
+                    IconButton(onClick = onEditClick) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    IconButton(onClick = onDeleteClick) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+fun formatDuration(durationStr: String): String {
+    val totalMinutes = durationStr.toIntOrNull() ?: return ""
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+
+    return when {
+        hours > 0 && minutes > 0 -> "${hours}h ${minutes}mins"
+        hours > 0 && minutes == 0 -> "${hours}h"
+        else -> "${minutes}mins"
     }
 }

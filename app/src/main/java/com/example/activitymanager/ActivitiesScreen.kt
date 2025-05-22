@@ -16,10 +16,21 @@ import androidx.navigation.NavController
 import androidx.compose.material3.Text
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.example.activitymanager.BottomNavigationBar
+import java.text.SimpleDateFormat
+import java.util.Locale
 import com.example.activitymanager.firebase.FirebaseHelper
 import com.example.activitymanager.mapper.Activity
-import com.example.assignmentcode.BottomNavigationBar
-
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -67,7 +78,7 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
 
             Spacer(Modifier.height(12.dp))
             FilterChipsRow(
-                options = listOf("All", "Design", "Fitness", "Tech", "Hiking"),
+                options = listOf("All", "Movie", "Hiking", "Camping"),
                 selected = selectedCategory,
                 onSelectedChange = { selectedCategory = it }
             )

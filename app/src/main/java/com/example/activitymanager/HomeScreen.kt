@@ -1,10 +1,12 @@
-package com.example.fit5046assignment
+package com.example.activitymanager
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -26,9 +28,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
@@ -37,69 +42,133 @@ import androidx.navigation.NavController
 import com.example.activitymanager.mapper.Activity
 import com.example.activitymanager.R
 import com.example.activitymanager.firebase.FirebaseHelper
-import com.example.assignmentcode.BottomNavigationBar
+import com.example.activitymanager.firebase.AuthManager
+import com.example.activitymanager.BottomNavigationBar
 import com.example.activitymanager.AppDatabase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Locale
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.dp
 
+// Add this new carousel component
+@Composable
+fun BannerCarousel(
+    imageResources: List<Int>,         // List of image resource IDs
+    autoScrollDuration: Long = 5000,   // Auto-scroll interval in milliseconds
+    content: @Composable (BoxScope.() -> Unit)? = null // Optional content to display over the carousel
+) {
+    // Current page index
+    var currentPage by remember { mutableStateOf(0) }
+    
+    // Auto-scroll effect
+    LaunchedEffect(Unit) {
+        while(true) {
+            delay(autoScrollDuration)
+            currentPage = (currentPage + 1) % imageResources.size
+        }
+    }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+    ) {
+        // Display current image
+        androidx.compose.foundation.Image(
+            painter = painterResource(id = imageResources[currentPage]),
+            contentDescription = "Banner image",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        
+        // Page indicators
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            imageResources.forEachIndexed { index, _ ->
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(
+                            color = if (index == currentPage) 
+                                Color.White 
+                            else 
+                                Color.Gray.copy(alpha = 0.5f),
+                            shape = CircleShape
+                        )
+                )
+            }
+        }
+        
+        // Optional content over the carousel
+        content?.invoke(this)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
-    // 创建状态
     var activities by remember { mutableStateOf<List<Activity>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableStateOf("Home") }
-    
-    // 添加用户名状态
     var username by remember { mutableStateOf("") }
-    
-    // 获取上下文
     val context = LocalContext.current
-    
-    // 获取FirebaseHelper实例
     val firebaseHelper = remember { FirebaseHelper() }
+
+    var showMenu by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
     
-    // 获取用户名
-    LaunchedEffect(Unit) {
+    // Get login status from AuthManager
+    val isLoggedIn by AuthManager.isLoggedIn
+    val currentUser by AuthManager.currentUser
+
+    LaunchedEffect(isLoggedIn) {
         try {
-            val userDao = AppDatabase.getInstance(context).userDao()
-            val currentUser = withContext(Dispatchers.IO) {
-                userDao.getCurrentUser()
-            }
-            
-            // 如果本地有用户数据，使用本地数据
-            if (currentUser != null && currentUser.username.isNotEmpty()) {
-                username = currentUser.username
-            } 
-            // 如果本地没有用户名，从Firebase获取
-            else if (firebaseHelper.getCurrentUser() != null) {
-                val uid = firebaseHelper.getCurrentUser()?.uid ?: ""
-                firebaseHelper.getUserData(
-                    uid = uid,
-                    onSuccess = { user ->
-                        username = user.username
-                    },
-                    onError = { errorMsg ->
-                        // 如果获取失败，使用默认名称
-                        username = "User"
-                    }
-                )
+            if (isLoggedIn) {
+                // Get current user ID
+                val user = currentUser // Assign delegated property to local variable
+                val uid = user?.uid ?: ""
+                
+                if (uid.isNotEmpty()) {
+                    // Get user information directly from Firebase database
+                    firebaseHelper.getUserData(
+                        uid = uid,
+                        onSuccess = { user ->
+                            username = user.username // Use username from database
+                        },
+                        onError = { errorMsg ->
+                            username = user?.username ?: "User" // Fallback to use value from AuthManager
+                        }
+                    )
+                } else {
+                    username = ""
+                }
+            } else {
+                // User not logged in
+                username = ""
             }
         } catch (e: Exception) {
-            // 如果出错，使用默认名称
-            username = "User"
+            username = ""
         }
     }
     
-    // 使用LaunchedEffect在屏幕加载时获取数据
     LaunchedEffect(Unit) {
         isLoading = true
         try {
-            // 获取所有活动
             val fetchedActivities = firebaseHelper.getActivities()
-            activities = fetchedActivities
+            // Sort activities by date, most recent first
+            activities = fetchedActivities.sortedBy { it.date }
             isLoading = false
         } catch (e: Exception) {
             error = e.message
@@ -120,36 +189,191 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .padding(innerPadding)) {
 
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        // 使用动态用户名
-                        text = "Hi, ${if (username.isNotEmpty()) username else "Fan"}",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { /* 处理通知点击事件 */ }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_notification),
-                            contentDescription = "Notifications",
-                            tint = Color.White
+            // 欢迎卡片移到顶部位置，替换原来的TopAppBar
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 2.dp
+                ),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // User avatar or initials
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (isLoggedIn && username.isNotEmpty()) 
+                                  username.first().toString().uppercase() 
+                                  else "G",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    Column {
+                        Text(
+                            text = "Welcome back",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        
+                        Text(
+                            text = if (isLoggedIn && username.isNotEmpty()) username else "Guest",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+                    
+                    // hamburg menu
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_notification),
+                                contentDescription = "Menu",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            offset = DpOffset(x = (-32).dp, y = 8.dp)
+                        ) {
+                            if (isLoggedIn) {
+                                DropdownMenuItem(
+                                    text = { Text("Logout") },
+                                    onClick = {
+                                        showMenu = false
+                                        showLogoutDialog = true
+                                    }
+                                )
+                            } else {
+                                DropdownMenuItem(
+                                    text = { Text("Login") },
+                                    onClick = {
+                                        showMenu = false
+                                        navController.navigate("login")
+                                    }
+                                )
+                            }
+
+                            DropdownMenuItem(
+                                text = { Text("Dashboard") },
+                                onClick = {
+                                    showMenu = false
+                                    navController.navigate("dashboard")
+                                }
+                            )
+                        }
+
+                        if (showLogoutDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showLogoutDialog = false },
+                                title = { Text("Confirm Logout") },
+                                text = { Text("Are you sure you want to log out?") },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        showLogoutDialog = false
+                                        firebaseHelper.signOut()
+                                        AuthManager.updateAuthState()
+                                        navController.navigate("login") {
+                                            popUpTo("HomeScreen") { inclusive = true }
+                                        }
+                                    }) {
+                                        Text("Yes")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showLogoutDialog = false }) {
+                                        Text("Cancel")
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                }
+            }
+
+            // Define images for carousel
+            val bannerImages = listOf(
+                R.drawable.ic_banner_image,
+                R.drawable.activtiy1,
+                R.drawable.activtiy2,
+                R.drawable.activtiy3,
+                R.drawable.activtiy4
             )
 
-
-            BannerSection(navController)
+            // Replace static banner with carousel
+            BannerCarousel(
+                imageResources = bannerImages
+            ) {
+                // Gradient overlay for better text readability
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                                )
+                            )
+                        )
+                )
+                
+                // Banner content
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = "Enjoy and Get Activities",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { navController.navigate("activityList") },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.height(40.dp)
+                    ) {
+                        Text("Get Now")
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-
+            // Improved Recent Activities section
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -158,7 +382,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Top Rated",
+                    text = "Recent Activities",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -167,7 +391,6 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable {
-                        // 点击 "View All" 后的操作
                         navController.navigate("activityList")
                     }
                 )
@@ -175,7 +398,6 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 根据加载状态显示不同内容
             when {
                 isLoading -> {
                     Box(
@@ -194,7 +416,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("加载失败: $error", color = Color.Red)
+                        Text("Loading failure: $error", color = Color.Red)
                     }
                 }
                 activities.isEmpty() -> {
@@ -204,7 +426,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("暂无活动数据")
+                        Text("No activities available at the moment")
                     }
                 }
                 else -> {
@@ -214,7 +436,12 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                             .padding(horizontal = 16.dp)
                     ) {
                         items(activities) { activity ->
-                            ActivityCard(activity)
+                            ActivityCard(
+                                activity = activity,
+                                onActivityClick = { activityId ->
+                                    navController.navigate("activity_details/$activityId")
+                                }
+                            )
                         }
                     }
                 }
@@ -224,97 +451,114 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun BannerSection(navController: NavController) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .padding(16.dp)
-            .background(
-
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.primaryContainer
-                    )
-                )
-            ),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Enjoy and Get Activities",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = { navController.navigate("activityList") },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                ) {
-                    Text("Get Now")
-                }
-            }
-
-            androidx.compose.foundation.Image(
-                painter = painterResource(id = R.drawable.ic_banner_image), // 替换成你项目中的 Banner 图片
-                contentDescription = "Banner Illustration",
-                modifier = Modifier
-                    .size(120.dp)
-                    .padding(end = 16.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun ActivityCard(activity: Activity) {
+fun ActivityCard(activity: Activity, onActivityClick: (String) -> Unit = {}) {
     val imageRes = when (activity.type) {
         "Movie" -> R.drawable.movie
         "Hiking" -> R.drawable.hiking
         else -> R.drawable.pic1
     }
     
+    // Format time
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    val formattedDate = dateFormat.format(activity.date)
+    
+    // Redesigned activity card
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+            .padding(vertical = 8.dp)
+            .clickable { onActivityClick(activity.id) },
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
         ) {
-
-            androidx.compose.foundation.Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = activity.title,
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column {
+            // Card top image area
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = painterResource(id = imageRes),
+                    contentDescription = activity.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                
+                // Activity type label
+                Box(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .align(Alignment.TopStart)
+                ) {
+                    Text(
+                        text = activity.type ?: "Activity",
+                        color = Color.White,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+            
+            // Card content area
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
                 Text(
                     text = activity.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+                
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Date: ${activity.date}", style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.height(2.dp))
+                
+                // Date row
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_notification),
+                        contentDescription = "Date",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = formattedDate,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Description text
+                if (!activity.description.isNullOrEmpty()) {
+                    Text(
+                        text = activity.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Organizer
                 Text(
-                    text = "Rating: ${activity.rating} | Participants: ${activity.participants}",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "By ${activity.organizer}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }

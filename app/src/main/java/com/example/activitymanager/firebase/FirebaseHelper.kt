@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.example.activitymanager.model.User
+import com.example.activitymanager.model.UserPreferences
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -24,7 +25,9 @@ import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Date
+import java.util.Calendar
 import com.google.firebase.firestore.Source
+
 class FirebaseHelper {
     private val auth: FirebaseAuth = Firebase.auth
     private val db: FirebaseFirestore = Firebase.firestore
@@ -525,6 +528,98 @@ class FirebaseHelper {
             emptyList()
         }
     }
+    
+    // 更新用户数据
+    suspend fun updateUserData(
+        user: User,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            usersCollection.document(user.uid).set(user).await()
+            Log.d(TAG, "User data updated successfully: ${user.uid}")
+            onSuccess()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update user data", e)
+            onError(e.message ?: "Failed to update user data")
+        }
+    }
+
+    // 用户偏好设置集合引用
+    private val userPreferencesCollection = db.collection("userPreferences")
+    
+    // 获取用户偏好设置
+    suspend fun getUserPreferences(
+        uid: String,
+        onSuccess: (UserPreferences) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            val snapshot = userPreferencesCollection.document(uid).get().await()
+            val preferences = snapshot.toObject(UserPreferences::class.java) 
+                ?: UserPreferences(uid = uid)
+            
+            Log.d(TAG, "User preferences fetched: $preferences")
+            onSuccess(preferences)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get user preferences", e)
+            onError(e.message ?: "Failed to get user preferences")
+        }
+    }
+
+    // 更新用户偏好设置
+    suspend fun updateUserPreferences(
+        preferences: UserPreferences,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            userPreferencesCollection.document(preferences.uid).set(preferences).await()
+            Log.d(TAG, "User preferences updated successfully: ${preferences.uid}")
+            onSuccess()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update user preferences", e)
+            onError(e.message ?: "Failed to update user preferences")
+        }
+    }
+
+    // get statistic data with quarter
+    suspend fun getActivityCountByQuarter(): Map<String, Int> {
+        val db = FirebaseFirestore.getInstance()
+        val snapshot = db.collection("activities").get().await()
+
+        val result = mutableMapOf(
+            "Q1" to 0,
+            "Q2" to 0,
+            "Q3" to 0,
+            "Q4" to 0
+        )
+
+        for (doc in snapshot.documents) {
+            val timestamp = doc.getTimestamp("date") ?: continue
+            val date = timestamp.toDate()
+            val calendar = Calendar.getInstance().apply { time = date }
+            val month = calendar.get(Calendar.MONTH) + 1
+            val quarter = (month - 1) / 3 + 1
+            val key = "Q$quarter"
+            result[key] = result.getOrDefault(key, 0) + 1
+        }
+
+        return result
+    }
+
+    // get statistic data with type
+    suspend fun getActivityCountByType(): Map<String, Int> {
+        val db = FirebaseFirestore.getInstance()
+        val snapshot = db.collection("activities").get().await()
+
+        val result = mutableMapOf<String, Int>()
+        for (doc in snapshot.documents) {
+            val type = doc.getString("type") ?: "Unknown"
+            result[type] = result.getOrDefault(type, 0) + 1
+        }
+        return result
+    }
 
     suspend fun deleteActivity(
         activityId: String,
@@ -548,4 +643,4 @@ class FirebaseHelper {
             onError(e.message ?: "Unknown error occurred")
         }
     }
-} 
+}

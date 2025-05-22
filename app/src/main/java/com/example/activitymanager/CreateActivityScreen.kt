@@ -328,6 +328,7 @@ fun CreateActivityScreen(
                             activity = newActivity,
                             onSuccess = {
                                 Toast.makeText(context, "Activity posted successfully", Toast.LENGTH_SHORT).show()
+                                onActivityCreated(newActivity)
                                 onNavigateBack()
                             },
                             onError = { error ->
