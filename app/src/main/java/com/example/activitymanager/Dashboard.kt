@@ -21,6 +21,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.utils.ColorTemplate
 import android.util.Log
+import com.github.mikephil.charting.formatter.ValueFormatter
+import com.github.mikephil.charting.components.Legend
 
 
 @Composable
@@ -31,6 +33,22 @@ fun DashboardScreen(navController: NavController, viewModel: DashboardViewModel 
     val typeStats = viewModel.typeStats
     Log.d("DashboardStats", "Quarter Stats: $quarterStats")
     Log.d("DashboardStats", "Type Stats: $typeStats")
+
+    val intValueFormatter = object : ValueFormatter() {
+        override fun getFormattedValue(value: Float): String {
+            return value.toInt().toString()
+        }
+    }
+
+    val typeColorMap = mapOf(
+        "Hiking" to Color.rgb(102, 187, 106),
+        "Board Games" to Color.rgb(255, 202, 40),
+        "Movie" to Color.rgb(66, 165, 245),
+        "Rock Climbing" to Color.rgb(239, 83, 80),
+        "Art Exhibition" to Color.rgb(171, 71, 188),
+        "Camping" to Color.rgb(255, 112, 67),
+        "Other" to Color.rgb(120, 144, 156)
+    )
 
     Scaffold(
         bottomBar = {
@@ -60,7 +78,7 @@ fun DashboardScreen(navController: NavController, viewModel: DashboardViewModel 
                 )
             )
 
-            // 🟦 Bar Chart (Quarter)
+            // Bar Chart (Quarter)
             Card(
                 modifier = Modifier.fillMaxWidth().height(280.dp),
                 elevation = CardDefaults.cardElevation(6.dp),
@@ -68,76 +86,121 @@ fun DashboardScreen(navController: NavController, viewModel: DashboardViewModel 
             ) {
                 var barChartRef: BarChart? = null
 
-                AndroidView(
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                    factory = { context ->
-                        BarChart(context).also { barChartRef = it }
-                    },
-                    update = { chart ->
-                        val entries = quarterStats.mapIndexed { index, stat ->
-                            BarEntry(index.toFloat(), stat.count.toFloat())
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(8.dp)
+                ) {
+                    Text(
+                        text = "Quarterly Activity Statistics",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ComposeColor.Black,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { context ->
+                            BarChart(context)
+                        },
+                        update = { chart ->
+                            val entries = quarterStats.mapIndexed { index, stat ->
+                                BarEntry(index.toFloat(), stat.count.toFloat())
+                            }
+                            val labels = quarterStats.map { it.quarter }
+
+                            val dataSet = BarDataSet(entries, "Quarterly activity statistics").apply {
+                                color = Color.rgb(100, 149, 237)
+                            }
+
+                            val barData = BarData(dataSet).apply {
+                                barWidth = 0.9f
+                                setValueFormatter(intValueFormatter)
+                            }
+
+                            chart.data = barData
+                            chart.setFitBars(true)
+                            chart.description.isEnabled = false
+                            chart.animateY(1000)
+
+                            chart.xAxis.apply {
+                                position = XAxis.XAxisPosition.BOTTOM
+                                setDrawGridLines(false)
+                                granularity = 1f
+                                labelCount = entries.size
+                                valueFormatter = IndexAxisValueFormatter(labels)
+                            }
+
+                            chart.invalidate()
                         }
-                        val labels = quarterStats.map { it.quarter }
-
-                        val dataSet = BarDataSet(entries, "Quarterly activity statistics").apply {
-                            color = Color.rgb(100, 149, 237)
-                        }
-
-                        val barData = BarData(dataSet).apply { barWidth = 0.9f }
-
-                        chart.data = barData
-                        chart.setFitBars(true)
-                        chart.description.isEnabled = false
-                        chart.animateY(1000)
-
-                        chart.xAxis.apply {
-                            position = XAxis.XAxisPosition.BOTTOM
-                            setDrawGridLines(false)
-                            granularity = 1f
-                            labelCount = entries.size
-                            valueFormatter = IndexAxisValueFormatter(labels)
-                        }
-
-                        chart.invalidate()
-                    }
-                )
+                    )
+                }
             }
 
-            // 🟧 Pie Chart (Type)
+            // Pie Chart (Type)
             Card(
                 modifier = Modifier.fillMaxWidth().height(280.dp),
                 elevation = CardDefaults.cardElevation(6.dp),
                 shape = MaterialTheme.shapes.medium
             ) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                    factory = { context ->
-                        PieChart(context)
-                    },
-                    update = { chart ->
-                        val entries = typeStats.map {
-                            PieEntry(it.count.toFloat(), it.type)
-                        }
+                Card(
+                    modifier = Modifier.fillMaxWidth().height(300.dp),
+                    elevation = CardDefaults.cardElevation(6.dp),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(8.dp)
+                    ) {
+                        Text(
+                            text = "Participation by Activity Type",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ComposeColor.Black,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
 
-                        val pieDataSet = PieDataSet(entries, "Participate in activity statistics").apply {
-                            colors = ColorTemplate.MATERIAL_COLORS.toList()
-                            sliceSpace = 3f
-                            selectionShift = 5f
-                        }
+                        AndroidView(
+                            modifier = Modifier.fillMaxSize(),
+                            factory = { context ->
+                                PieChart(context)
+                            },
+                            update = { chart ->
+                                chart.legend.apply {
+                                    verticalAlignment = Legend.LegendVerticalAlignment.CENTER
+                                    horizontalAlignment = Legend.LegendHorizontalAlignment.RIGHT
+                                    orientation = Legend.LegendOrientation.VERTICAL
+                                    isWordWrapEnabled = true
+                                }
+                                chart.setEntryLabelColor(Color.BLACK)
+                                chart.extraRightOffset = 14f
+                                val entries = typeStats.map {
+                                    PieEntry(it.count.toFloat(), it.type)
+                                }
+                                val colors = typeStats.map {
+                                    typeColorMap[it.type] ?: Color.GRAY  // Set to gray if no matching type is found
+                                }
 
-                        val pieData = PieData(pieDataSet).apply {
-                            setValueTextSize(14f)
-                        }
+                                val pieDataSet = PieDataSet(entries, "Participate in activity statistics").apply {
+                                    this.colors = colors
+                                    sliceSpace = 3f
+                                    selectionShift = 5f
+                                }
 
-                        chart.data = pieData
-                        chart.description.isEnabled = false
-                        chart.isDrawHoleEnabled = true
-                        chart.holeRadius = 40f
-                        chart.animateY(1000)
+                                val pieData = PieData(pieDataSet).apply {
+                                    setValueTextSize(14f)
+                                    setValueFormatter(intValueFormatter)
+                                }
 
-                        chart.invalidate()
+                                chart.data = pieData
+                                chart.description.isEnabled = false
+                                chart.isDrawHoleEnabled = true
+                                chart.holeRadius = 40f
+                                chart.animateY(1000)
+
+                                chart.invalidate()
+                            }
+                        )
                     }
-                )
+                }
             }
         }
     }
