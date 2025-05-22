@@ -43,7 +43,8 @@ fun EditActivityScreen(
     var organizer by remember { mutableStateOf(backStack?.get<String>("organizer") ?: "") }
     var type by remember { mutableStateOf(backStack?.get<String>("type") ?: "") }
     var participants by remember { mutableStateOf(backStack?.get<String>("participants") ?: "") }
-    var participantsIDs by remember { mutableStateOf<List<String>>(emptyList()) }
+    // var participantsIDs by remember { mutableStateOf<List<String>>(emptyList()) }
+    var participantsIDs by remember { mutableStateOf(backStack?.get<List<String>>("participantsIDs") ?: emptyList()) }
     val coordinatesMap = backStack?.get<Map<String, Any>>("coordinates")
     var latitude by remember { mutableStateOf((coordinatesMap?.get("latitude") as? Double)?.toString() ?: "0.0") }
     var longitude by remember { mutableStateOf((coordinatesMap?.get("longitude") as? Double)?.toString() ?: "0.0") }
@@ -328,10 +329,15 @@ fun EditActivityScreen(
 
             OutlinedTextField(
                 value = duration,
-                onValueChange = { duration = it },
-                label = { Text("Duration") },
+                onValueChange = {
+                    if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                        duration = it
+                    }
+                },
+                label = { Text("Duration (minutes)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 leadingIcon = {
                     Icon(Icons.Default.DateRange, contentDescription = null)
                 }
@@ -358,6 +364,13 @@ fun EditActivityScreen(
             val coroutineScope = rememberCoroutineScope()
             Button(
                 onClick = {
+                    if (title.isBlank() || description.isBlank() || location.isBlank() ||
+                        date.isBlank() || time.isBlank() || organizer.isBlank() ||
+                        duration.isBlank() || participants.isBlank()) {
+                        Toast.makeText(context, "Please fill in all required fields", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
                     val newActivity = Activity(
                         id = id,
                         title = title,

@@ -78,7 +78,7 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
 
             Spacer(Modifier.height(12.dp))
             FilterChipsRow(
-                options = listOf("All", "Design", "Fitness", "Tech", "Hiking"),
+                options = listOf("All", "Movie", "Hiking", "Camping"),
                 selected = selectedCategory,
                 onSelectedChange = { selectedCategory = it }
             )
