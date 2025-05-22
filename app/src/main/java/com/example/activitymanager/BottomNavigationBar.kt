@@ -45,7 +45,6 @@ fun BottomNavigationBar(
             modifier = Modifier.weight(1f)
         )
 
-        // 中间圆形按钮
         Box(
             modifier = Modifier
                 .weight(1f)
