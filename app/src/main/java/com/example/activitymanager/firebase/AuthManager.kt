@@ -7,9 +7,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
-/**
- * 全局身份验证状态管理器
- */
+/*** Global Authentication Status Manager */
 object AuthManager {
     // 当前登录状态
     val isLoggedIn = mutableStateOf(false)
@@ -58,7 +56,9 @@ object AuthManager {
                 uid = user.uid,
                 username = user.displayName ?: "User",
                 email = user.email ?: "",
-                photoUrl = user.photoUrl?.toString() ?: ""
+                photoUrl = user.photoUrl?.toString() ?: "",
+                address = "",  // Default empty value for address
+                phone = ""     // Default empty value for phone
             )
         } else if (user == null) {
             currentUser.value = null

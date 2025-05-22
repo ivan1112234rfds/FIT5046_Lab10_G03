@@ -53,6 +53,10 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     
+    var quote by remember { mutableStateOf<String?>(null) }
+    var isLoadingQuote by remember { mutableStateOf(false) }
+    val quoteService = remember { ZenQuoteService() }
+    
     var userData by remember { mutableStateOf<User?>(null) }
     var userPreferences by remember { mutableStateOf<UserPreferences?>(null) }
 
@@ -63,23 +67,35 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
     var email by remember { mutableStateOf("") }
     var avatarResId by remember { mutableStateOf(R.drawable.placeholder_avatar) }
 
-    val allTypes = listOf("Hiking", "Biking", "Movies", "Poker")
-    var selectedType by remember { mutableStateOf(allTypes.first()) }
+    var allTypes by remember { mutableStateOf<List<String>>(emptyList()) }
+    var selectedType by remember { mutableStateOf("") }
     var typeDropdownExpanded by remember { mutableStateOf(false) }
-    var area by remember { mutableStateOf("") }
 
     val context = LocalContext.current
     val firebaseHelper = remember { FirebaseHelper() }
     
-    // Obtain the login status from AuthManager
     val isLoggedIn by AuthManager.isLoggedIn
     val currentAuthUser by AuthManager.currentUser
+
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) {
+            isLoadingQuote = true
+            try {
+                quote = quoteService.fetchQuoteText()
+            } catch (e: Exception) {
+                quote = null
+            } finally {
+                isLoadingQuote = false
+            }
+        } else {
+            quote = null
+        }
+    }
 
     LaunchedEffect(isLoggedIn) {
         isLoading = true
         try {
             if (isLoggedIn && currentAuthUser != null) {
-                // The user has logged in to obtain detailed information
                 val user = currentAuthUser
                 val uid = user?.uid ?: ""
                 
@@ -91,6 +107,8 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                             name = user.username
                             email = user.email
                             birthday = user.birthday
+                            address = user.address
+                            phone = user.phone
                             isLoading = false
                         },
                         onError = { errorMsg ->
@@ -106,13 +124,20 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                             if (preferences.activityType.isNotEmpty()) {
                                 selectedType = preferences.activityType
                             }
-                            area = preferences.activityArea
                         },
                         onError = { /* Handle errors and use the default values */ }
                     )
+                    
+                    try {
+                        allTypes = firebaseHelper.getActivityTypes()
+                        if (allTypes.isEmpty()) {
+                            allTypes = listOf("Hiking", "Biking", "Movies", "Poker")
+                        }
+                    } catch (e: Exception) {
+                        allTypes = listOf("Hiking", "Biking", "Movies", "Poker")
+                    }
                 }
             } else {
-                // The user is not logged in. Reset the data
                 userData = null
                 userPreferences = null
                 isLoading = false
@@ -149,7 +174,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
         val uid = userData?.uid ?: firebaseHelper.getCurrentUser()?.uid ?: ""
         
         if (uid.isEmpty()) {
-            error = "The user ID cannot be obtainedD"
+            error = "The user ID cannot be obtained"
             isLoading = false
             return
         }
@@ -161,7 +186,9 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
             email = email,
             birthday = birthday,
             gender = userData?.gender ?: "",
-            age = userData?.age ?: ""
+            age = userData?.age ?: "",
+            address = address,
+            phone = phone
         )
         
         val scope = (context as LifecycleOwner).lifecycleScope
@@ -199,7 +226,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
         val updatedPreferences = UserPreferences(
             uid = uid,
             activityType = selectedType,
-            activityArea = area
+            activityArea = ""
         )
         
         val scope = (context as LifecycleOwner).lifecycleScope
@@ -275,7 +302,7 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                 ) {
                     Image(
                         painter = painterResource(
-                            id = if (isLoggedIn) R.drawable.placeholder_avatar 
+                            id = if (isLoggedIn) avatarResId 
                                 else R.drawable.no_login
                         ),
                         contentDescription = "Profile Picture",
@@ -301,10 +328,27 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                         fontSize = 14.sp
                     )
                 }
+                
+                if (isLoggedIn && quote != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    DailyQuoteCard(quote = quote!!)
+                } else if (isLoggedIn && isLoadingQuote) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Personal information card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -389,7 +433,6 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                // Login/Logout button
                 Button(
                     onClick = {
                         if (isLoggedIn) {
@@ -417,7 +460,6 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
             }
         }
 
-        // Edit your profile dialog box
         if (isEditing && isLoggedIn) {
             AlertDialog(
                 onDismissRequest = { isEditing = false },
@@ -428,8 +470,15 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                         TextFieldWithLabel("Address", address) { address = it }
                         TextFieldWithLabel("Phone", phone) { phone = it }
                         BirthdayPickerField("Birthday", birthday) { showDatePicker() }
-                        TextFieldWithLabel("Email", email) { email = it }
-                        AvatarUploadField("Avatar") { avatarResId = R.drawable.placeholder_avatar2 }
+                        ReadOnlyFieldWithLabel("Email", email)
+                        AvatarUploadField("Avatar") { 
+                            when (it) {
+                                1 -> avatarResId = R.drawable.placeholder_avatar
+                                2 -> avatarResId = R.drawable.placeholder_avatar2
+                                3 -> avatarResId = R.drawable.placeholder_avatar3
+                                else -> avatarResId = R.drawable.placeholder_avatar
+                            }
+                        }
                     }
                 },
                 confirmButton = {
@@ -445,7 +494,6 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
             )
         }
 
-        // Preference Settings dialog box
         if (isPrefOpen && isLoggedIn) {
             AlertDialog(
                 onDismissRequest = { isPrefOpen = false },
@@ -488,9 +536,6 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
                                 }
                             }
                         }
-                        
-                        Spacer(modifier = Modifier.height(12.dp))
-                        TextFieldWithLabel("Activity area", area) { area = it }
                     }
                 },
                 confirmButton = {
@@ -507,7 +552,6 @@ fun ProfileScreen(navController: NavController, modifier: Modifier = Modifier) {
         }
     }
 }
-
 
 @Composable
 fun TextFieldWithLabel(label: String, value: String, onValueChange: (String) -> Unit) {
@@ -554,16 +598,135 @@ fun BirthdayPickerField(label: String, birthday: String, onPickDate: () -> Unit)
 }
 
 @Composable
-fun AvatarUploadField(label: String, onUploadClick: () -> Unit) {
+fun AvatarUploadField(label: String, onUploadClick: (Int) -> Unit) {
     Column(Modifier
         .fillMaxWidth()
         .padding(bottom = 12.dp)) {
         Text(label, fontWeight = FontWeight.SemiBold)
+        
+        var isAvatarDialogVisible by remember { mutableStateOf(false) }
+        
         Button(
-            onClick = onUploadClick,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6))
+            onClick = { isAvatarDialogVisible = true },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFF3F4F6),
+                contentColor = Color(0xFF3C4043) // 深灰色文字
+            )
         ) {
-            Text("Upload")
+            Text("Choose Avatar")
         }
+        
+        if (isAvatarDialogVisible) {
+            AlertDialog(
+                onDismissRequest = { isAvatarDialogVisible = false },
+                title = { Text("Select Avatar") },
+                text = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        // 第一个头像选项
+                        Image(
+                            painter = painterResource(id = R.drawable.placeholder_avatar),
+                            contentDescription = "Avatar 1",
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    onUploadClick(1)
+                                    isAvatarDialogVisible = false
+                                },
+                            contentScale = ContentScale.Crop
+                        )
+                        
+                        // 第二个头像选项
+                        Image(
+                            painter = painterResource(id = R.drawable.placeholder_avatar2),
+                            contentDescription = "Avatar 2",
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    onUploadClick(2)
+                                    isAvatarDialogVisible = false
+                                },
+                            contentScale = ContentScale.Crop
+                        )
+                        
+                        // 第三个头像选项
+                        Image(
+                            painter = painterResource(id = R.drawable.placeholder_avatar3),
+                            contentDescription = "Avatar 3",
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    onUploadClick(3)
+                                    isAvatarDialogVisible = false
+                                },
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { isAvatarDialogVisible = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun DailyQuoteCard(quote: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Today's Inspiration",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "\"$quote\"",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Light,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun ReadOnlyFieldWithLabel(label: String, value: String) {
+    Column(Modifier
+        .fillMaxWidth()
+        .padding(bottom = 12.dp)) {
+        Text(label, fontWeight = FontWeight.SemiBold)
+        TextField(
+            value = value,
+            onValueChange = { /* Read-only, no changes allowed */ },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false,
+            colors = TextFieldDefaults.colors(
+                disabledTextColor = Color.Black,
+                disabledContainerColor = Color(0xFFF3F4F6)
+            )
+        )
     }
 }

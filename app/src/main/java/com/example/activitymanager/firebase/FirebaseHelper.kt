@@ -161,7 +161,9 @@ class FirebaseHelper {
                         val userEntity = UserEntity(
                             uid = uid, 
                             email = email,
-                            username = user.username
+                            username = user.username,
+                            address = user.address,    // Include address from Firebase
+                            phone = user.phone         // Include phone from Firebase
                         )
                         userDao.insertUser(userEntity)
                         Log.d(TAG, "User data saved to local database: ${user.username}")

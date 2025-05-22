@@ -68,8 +68,12 @@ fun MyActivitiesScreen(
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var selectedTabIndex by remember { mutableStateOf(0) }
-    var selectedTab by remember { mutableStateOf("Home") }
+    var selectedTab by remember { mutableStateOf("My Activity") }
     val tabs = listOf("Upcoming", "Past", "All")
+
+    LaunchedEffect(Unit) {
+        selectedTab = "My Activity"
+    }
 
     LaunchedEffect(userId) {
         isLoading = true
