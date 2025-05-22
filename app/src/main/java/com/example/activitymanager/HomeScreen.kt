@@ -240,8 +240,9 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(
-                                painter = painterResource(id = R.drawable.ic_notification),
+                                painter = painterResource(id = R.drawable.menu),
                                 contentDescription = "Menu",
+                                modifier = Modifier.size(32.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }

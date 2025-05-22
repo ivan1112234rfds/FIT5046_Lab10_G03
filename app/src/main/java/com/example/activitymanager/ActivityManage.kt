@@ -51,7 +51,7 @@ fun ActivityManageScreen(navController : NavController) {
 
     val tabs = listOf("Active", "Closed")
     var selectedTabIndex by remember { mutableStateOf(0) }
-    var selectedTab by remember { mutableStateOf("Home") }
+    var selectedTab by remember { mutableStateOf("Manage") }
     var activityList by remember { mutableStateOf<List<Activity>>(emptyList()) }
 
     // State for create activity dialog

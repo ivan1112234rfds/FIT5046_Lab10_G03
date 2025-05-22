@@ -8,5 +8,7 @@ data class User(
     val age: String = "",
     val birthday: String = "",
     val email: String = "",
-    val photoUrl: String = ""
+    val photoUrl: String = "",
+    val address: String = "",
+    val phone: String = ""
 ) 

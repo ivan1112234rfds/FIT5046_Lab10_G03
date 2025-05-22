@@ -3,9 +3,11 @@ package com.example.activitymanager
 import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,19 +42,74 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
 
     val firebaseHelper = FirebaseHelper()
     var activities by remember { mutableStateOf<List<Activity>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var selectedTab by remember { mutableStateOf("Search") }
+    
+    // 添加获取用户偏好的状态
+    var userPreference by remember { mutableStateOf("") }
+    // 添加活动类型列表状态
+    var activityTypes by remember { mutableStateOf<List<String>>(listOf("All", "Design", "Fitness", "Tech", "Hiking")) }
+
+    // 过滤活动
     val filteredActivities = activities.filter {
         (selectedCategory == "All" || it.type == selectedCategory)
     }
-    var selectedTab by remember { mutableStateOf("Home") }
 
+    // 获取活动类型
     LaunchedEffect(Unit) {
         try {
-            activities = firebaseHelper.getActivities()
+            val types = firebaseHelper.getActivityTypes()
+            if (types.isNotEmpty()) {
+                activityTypes = listOf("All") + types
+            }
         } catch (e: Exception) {
+            Log.e("ActivityScreen", "Error loading activity types", e)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        isLoading = true
+        try {
+            // 1. 获取当前用户ID
+            val currentUser = firebaseHelper.getCurrentUser()
+            val uid = currentUser?.uid
+            
+            // 2. 如果用户已登录，获取用户偏好
+            if (uid != null) {
+                firebaseHelper.getUserPreferences(
+                    uid = uid,
+                    onSuccess = { preferences ->
+                        userPreference = preferences.activityType
+                    },
+                    onError = { /* 使用默认空字符串 */ }
+                )
+            }
+            
+            // 3. 获取所有活动
+            val fetchedActivities = firebaseHelper.getActivities()
+            
+            // 4. 根据用户偏好和日期对活动进行排序
+            activities = fetchedActivities.sortedWith(
+                compareBy<Activity> { 
+                    // 首先按照类型是否匹配用户偏好排序（不匹配的排后面）
+                    if (it.type == userPreference) 0 else 1 
+                }.thenBy { 
+                    // 然后按日期排序
+                    it.date 
+                }
+            )
+            
+            isLoading = false
+        } catch (e: Exception) {
+            error = e.message
+            isLoading = false
             Log.e("ActivityScreen", "Error loading activities", e)
         }
     }
+    
     Scaffold(
+        modifier = Modifier.padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
         bottomBar = {
             BottomNavigationBar(
                 selectedTab = selectedTab,
@@ -60,15 +117,11 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
                 navController = navController
             )
         }
-    ) {
-        paddingValues ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-                    start = 16.dp,
-                    end = 16.dp,
-                    bottom = 16.dp)
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
         ) {
             Text(
                 "Featured Activities",
@@ -77,41 +130,48 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
             )
 
             Spacer(Modifier.height(12.dp))
-            FilterChipsRow(
-                options = listOf("All", "Movie", "Hiking", "Camping"),
-                selected = selectedCategory,
-                onSelectedChange = { selectedCategory = it }
-            )
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                FilterChipsRow(
+                    options = activityTypes,
+                    selected = selectedCategory,
+                    onSelectedChange = { selectedCategory = it }
+                )
+            }
 
             Spacer(Modifier.height(8.dp))
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(filteredActivities) { activity ->
-                    ActivityItem(
-                        activity = activity,
-                        onClick = { onActivityClick(activity.id) }
+            Box(modifier = Modifier.weight(1f)) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
                     )
+                } else if (error != null) {
+                    Text(
+                        "Error: $error", 
+                        color = Color.Red,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(filteredActivities) { activity ->
+                            ActivityItem(
+                                activity = activity,
+                                onClick = { onActivityClick(activity.id) }
+                            )
+                        }
+                    }
                 }
-            }
-
-            Button(
-                onClick = { navController.navigate("login") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5A6DF9))
-            ) {
-                Text("Go to Login", color = Color.White)
             }
         }
     }
 }
-
-
 
 @Composable
 fun FilterChipsRow(
@@ -119,7 +179,10 @@ fun FilterChipsRow(
     selected: String,
     onSelectedChange: (String) -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         options.forEach { option ->
             FilterChip(
                 selected = selected == option,
