@@ -229,20 +229,15 @@ fun LoginScreen(
 
                 Button(
                     onClick = {
-                        // 修改模拟器谷歌登录，确保它使用全局Firebase Auth实例
                         coroutineScope.launch(Dispatchers.IO) {
                             try {
-                                // 获取全局Firebase Auth实例（不创建新的）
                                 val auth = Firebase.auth
 
-                                // 登录前检查状态
                                 firebaseHelper.checkAuthState()
 
-                                // 如果需要，临时连接到模拟器
                                 val usingEmulator = true
                                 if (usingEmulator) {
                                     try {
-                                        // 注意：这会修改全局Firebase Auth实例
                                         auth.useEmulator("10.0.2.2", 9099)
                                         Log.d("LoginScreen", "Connected to Auth Emulator for Google login")
                                     } catch (e: Exception) {
@@ -250,19 +245,15 @@ fun LoginScreen(
                                     }
                                 }
 
-                                // 使用测试账号进行模拟登录
                                 val testEmail = "test@gmail.com"
-                                val testPassword = "admin123456!" // 模拟器不需要真实密码
+                                val testPassword = "admin123456!"
 
                                 try {
-                                    // 使用全局Firebase Auth实例进行登录
                                     auth.signInWithEmailAndPassword(testEmail, testPassword)
                                         .addOnSuccessListener {
-                                            // 登录成功后，确认currentUser已设置
                                             val user = auth.currentUser
                                             Log.d("LoginScreen", "Emulator Google login successful! User: ${user?.uid}")
 
-                                            // 登录后再次检查状态
                                             firebaseHelper.checkAuthState()
 
                                             CoroutineScope(Dispatchers.Main).launch {
