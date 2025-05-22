@@ -274,8 +274,12 @@ fun CreateActivityScreen(
 
             OutlinedTextField(
                 value = duration,
-                onValueChange = { duration = it },
-                label = { Text("Duration") },
+                onValueChange = {
+                    if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                        duration = it
+                    }
+                },
+                label = { Text("Duration (Minutes)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 leadingIcon = {
@@ -302,6 +306,7 @@ fun CreateActivityScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             val coroutineScope = rememberCoroutineScope()
+            val rating = (30..50).random() / 10.0
             Button(
                 onClick = {
                     val newActivity = Activity(
@@ -312,7 +317,7 @@ fun CreateActivityScreen(
                         location = location,
                         organizer = organizer,
                         uid = currentUserId,
-                        rating = 0.0,
+                        rating = rating,
                         type = type,
                         duration = duration,
                         participants = participants.toIntOrNull() ?: 0,
