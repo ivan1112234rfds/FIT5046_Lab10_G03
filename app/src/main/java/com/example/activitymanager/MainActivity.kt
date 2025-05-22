@@ -72,7 +72,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // 初始化AuthManager
         AuthManager.initialize()
         
         // Initialize Firebase
@@ -120,7 +119,6 @@ class MainActivity : ComponentActivity() {
                 firebaseHelper.handleGoogleSignInResult(
                     data = result.data,
                     onSuccess = {
-                        // 更新认证状态
                         AuthManager.updateAuthState()
                         showToast("Google Sign-In successful")
                     },
@@ -183,10 +181,8 @@ fun ActivityApp(
     onGoogleSignIn: () -> Unit
 ) {
     val navController = rememberNavController()
-    // 从AuthManager获取登录状态
     val isLoggedIn by AuthManager.isLoggedIn
 
-    // 登录提示对话框状态
     var showLoginDialog by remember { mutableStateOf(false) }
     var loginRedirectTarget by remember { mutableStateOf<String?>(null) }
 
@@ -195,7 +191,6 @@ fun ActivityApp(
             ProtectedRoute(
                 isLoggedIn = isLoggedIn,
                 onNotLoggedIn = {
-                    // 未登录时的处理
                     navController.popBackStack()
                     navController.navigate("Home")
                 }
@@ -222,7 +217,6 @@ fun ActivityApp(
             ProtectedRoute(
                 isLoggedIn = isLoggedIn,
                 onNotLoggedIn = {
-                    // 未登录时的处理
                     navController.popBackStack()
                     navController.navigate("Home")
                 }
@@ -255,7 +249,6 @@ fun ActivityApp(
             ProtectedRoute(
                 isLoggedIn = isLoggedIn,
                 onNotLoggedIn = {
-                    // 未登录时的处理
                     navController.popBackStack()
                     navController.navigate("Home")
                 }
@@ -279,7 +272,6 @@ fun ActivityApp(
             ProtectedRoute(
                 isLoggedIn = isLoggedIn,
                 onNotLoggedIn = {
-                    // 未登录时的处理
                     navController.popBackStack()
                     navController.navigate("Home")
                 }
@@ -293,7 +285,6 @@ fun ActivityApp(
         }
     }
     
-    // 登录提示对话框
     if (showLoginDialog) {
         AlertDialog(
             onDismissRequest = { showLoginDialog = false },

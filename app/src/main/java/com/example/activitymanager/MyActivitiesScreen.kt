@@ -49,7 +49,6 @@ import com.example.activitymanager.firebase.FirebaseHelper
 import com.example.activitymanager.mapper.Activity
 import com.google.firebase.auth.FirebaseAuth
 import java.text.ParseException
-import com.example.activitymanager.BottomNavigationBar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -223,6 +222,8 @@ fun ActivityItem(
 
     val rating = activity.rating ?: 0.0
 
+    val duration = formatDuration(activity.duration ?: "")
+
     Card(
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -270,7 +271,7 @@ fun ActivityItem(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "$rating ${activity.duration ?: ""}",
+                        text = "$rating  •  ${duration ?: ""}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )
@@ -312,5 +313,17 @@ fun ActivityItem(
                 }
             }
         }
+    }
+}
+
+fun durationFormat(durationStr: String): String {
+    val totalMinutes = durationStr.toIntOrNull() ?: return ""
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+
+    return when {
+        hours > 0 && minutes > 0 -> "${hours}h ${minutes}mins"
+        hours > 0 && minutes == 0 -> "${hours}h"
+        else -> "${minutes}mins"
     }
 }

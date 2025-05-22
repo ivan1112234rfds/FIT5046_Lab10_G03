@@ -241,9 +241,9 @@ class FirebaseHelper {
     fun checkAuthState() {
         val user = auth.currentUser
         if (user != null) {
-            Log.d(TAG, "当前用户已登录: ${user.uid}, email: ${user.email}")
+            Log.d(TAG, "Current user already logged in: ${user.uid}, email: ${user.email}")
         } else {
-            Log.d(TAG, "当前没有用户登录")
+            Log.d(TAG, "No current user")
         }
     }
     
@@ -348,7 +348,6 @@ class FirebaseHelper {
         onError: (String) -> Unit
     ) {
         try {
-            Log.d("FirebaseHelper", "Starting registration for activity with custom ID: '$activityId'")
             val db = FirebaseFirestore.getInstance()
 
             val querySnapshot = db.collection("activities")
@@ -357,40 +356,31 @@ class FirebaseHelper {
                 .await()
 
             if (querySnapshot.isEmpty) {
-                Log.e("FirebaseHelper", "No activity found with custom id: '$activityId'")
                 onError("Activity not found")
                 return
             }
 
             val activityDoc = querySnapshot.documents.first()
-            Log.d("FirebaseHelper", "Found activity with title: ${activityDoc.getString("title")}")
-            Log.d("FirebaseHelper", "Firestore document ID: ${activityDoc.id}")
-
             val participantsIDs = activityDoc.get("participantsIDs") as? List<String> ?: emptyList()
-
             if (participantsIDs.contains(userId)) {
-                Log.d("FirebaseHelper", "User $userId is already registered for this activity")
+
                 onError("You are already registered for this activity")
                 return
             }
 
             val maxParticipants = (activityDoc.getLong("participants") ?: 0).toInt()
             if (participantsIDs.size >= maxParticipants) {
-                Log.d("FirebaseHelper", "Activity is full (${participantsIDs.size}/$maxParticipants)")
+
                 onError("This activity is already full")
                 return
             }
 
-            Log.d("FirebaseHelper", "Adding user to participantsIDs using arrayUnion")
             db.collection("activities")
                 .document(activityDoc.id)
                 .update("participantsIDs", FieldValue.arrayUnion(userId))
                 .await()
-
-            Log.d("FirebaseHelper", "Successfully registered for activity. New participant count: ${participantsIDs.size + 1}")
             onSuccess()
         } catch (e: Exception) {
-            Log.e("FirebaseHelper", "Exception during registration", e)
             onError(e.message ?: "Failed to register for activity")
         }
     }
@@ -408,7 +398,6 @@ class FirebaseHelper {
                 .await()
 
             if (querySnapshot.isEmpty) {
-                Log.e("FirebaseHelper", "No activity found with custom id: '$activityId'")
                 return false
             }
 
@@ -417,7 +406,6 @@ class FirebaseHelper {
 
             return participants.contains(userId)
         } catch (e: Exception) {
-            Log.e("FirebaseHelper", "Error checking registration status", e)
             return false
         }
     }
@@ -429,28 +417,19 @@ class FirebaseHelper {
         onError: (String) -> Unit
     ) {
         try {
-            Log.d("FirebaseHelper", "Starting unregistration with arrayRemove for: $activityId")
-
             val querySnapshot = db.collection("activities")
                 .whereEqualTo("id", activityId)
                 .get()
                 .await()
 
             if (querySnapshot.isEmpty) {
-                Log.e("FirebaseHelper", "Activity not found")
                 onError("Activity not found")
                 return
             }
-
             val docRef = querySnapshot.documents.first().reference
-            Log.d("FirebaseHelper", "Document reference: $docRef")
-
             docRef.update("participantsIDs", FieldValue.arrayRemove(userId))
-
-            Log.d("FirebaseHelper", "Successfully removed user from participants list")
             onSuccess()
         } catch (e: Exception) {
-            Log.e("FirebaseHelper", "Exception in unregister", e)
             onError(e.message ?: "Unknown error")
         }
     }
@@ -531,7 +510,6 @@ class FirebaseHelper {
         }
     }
     
-    // 更新用户数据
     suspend fun updateUserData(
         user: User,
         onSuccess: () -> Unit,
@@ -547,10 +525,8 @@ class FirebaseHelper {
         }
     }
 
-    // 用户偏好设置集合引用
     private val userPreferencesCollection = db.collection("userPreferences")
     
-    // 获取用户偏好设置
     suspend fun getUserPreferences(
         uid: String,
         onSuccess: (UserPreferences) -> Unit,
@@ -569,7 +545,6 @@ class FirebaseHelper {
         }
     }
 
-    // 更新用户偏好设置
     suspend fun updateUserPreferences(
         preferences: UserPreferences,
         onSuccess: () -> Unit,

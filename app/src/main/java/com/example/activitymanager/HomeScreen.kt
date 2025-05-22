@@ -16,10 +16,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,14 +38,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.example.activitymanager.mapper.Activity
-import com.example.activitymanager.R
 import com.example.activitymanager.firebase.FirebaseHelper
 import com.example.activitymanager.firebase.AuthManager
-import com.example.activitymanager.BottomNavigationBar
-import com.example.activitymanager.AppDatabase
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
 import androidx.compose.material3.DropdownMenu
@@ -55,7 +48,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.dp
 
 // Add this new carousel component
 @Composable
@@ -189,7 +181,6 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .padding(innerPadding)) {
 
-            // 欢迎卡片移到顶部位置，替换原来的TopAppBar
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

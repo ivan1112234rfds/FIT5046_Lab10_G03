@@ -17,13 +17,11 @@ import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.*
 import androidx.compose.runtime.*
 import androidx.navigation.NavController
-import androidx.navigation.Navigator
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.utils.ColorTemplate
 import android.util.Log
-import androidx.compose.runtime.LaunchedEffect
-import com.example.activitymanager.BottomNavigationBar
+
 
 @Composable
 fun DashboardScreen(navController: NavController, viewModel: DashboardViewModel = viewModel()) {
