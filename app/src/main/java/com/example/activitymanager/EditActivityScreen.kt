@@ -319,7 +319,7 @@ fun EditActivityScreen(
             OutlinedTextField(
                 value = organizer,
                 onValueChange = { organizer = it },
-                label = { Text("Organizer") },
+                label = { Text("Organizer *") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 leadingIcon = {
@@ -334,7 +334,7 @@ fun EditActivityScreen(
                         duration = it
                     }
                 },
-                label = { Text("Duration (minutes)") },
+                label = { Text("Duration (minutes) *") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -350,7 +350,7 @@ fun EditActivityScreen(
                         participants = it
                     }
                 },
-                label = { Text("Participants Limit") },
+                label = { Text("Participants Limit *") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
