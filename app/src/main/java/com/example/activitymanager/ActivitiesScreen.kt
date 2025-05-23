@@ -68,7 +68,7 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val calendar = Calendar.getInstance()
 
-    // 获取活动类型
+    // get all activity types
     LaunchedEffect(Unit) {
         try {
             val types = firebaseHelper.getActivityTypes()
@@ -83,34 +83,32 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
     LaunchedEffect(Unit) {
         isLoading = true
         try {
-            // 1. 获取当前用户ID
+            // 1. get current user id
             val currentUser = firebaseHelper.getCurrentUser()
             val uid = currentUser?.uid
             
-            // 2. 如果用户已登录，获取用户偏好
+            // 2. get user preferences, if login
             if (uid != null) {
                 firebaseHelper.getUserPreferences(
                     uid = uid,
                     onSuccess = { preferences ->
                         userPreference = preferences.activityType
                     },
-                    onError = { /* 使用默认空字符串 */ }
+                    onError = {  }
                 )
             }
             
-            // 3. 获取所有活动
+            // 3. get all activities
             val fetchedActivities = firebaseHelper.getActivities(
                 startDate = startDate,
                 endDate = endDate
             )
             
-            // 4. 根据用户偏好和日期对活动进行排序
+            // 4. sort with date and preferences
             activities = fetchedActivities.sortedWith(
-                compareBy<Activity> { 
-                    // 首先按照类型是否匹配用户偏好排序（不匹配的排后面）
+                compareBy<Activity> {
                     if (it.type == userPreference) 0 else 1 
-                }.thenBy { 
-                    // 然后按日期排序
+                }.thenBy {
                     it.date 
                 }
             )
