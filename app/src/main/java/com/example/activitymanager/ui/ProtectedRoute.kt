@@ -11,8 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 /**
- * 受保护的路由组件
- * 用于检查用户是否已登录，如果未登录则显示提示对话框并执行相应操作
+ * Protected routing component
+ * It is used to check whether the user is logged in. If not, a prompt dialog box will be displayed and the corresponding operation will be performed
  */
 @Composable
 fun ProtectedRoute(
@@ -23,17 +23,17 @@ fun ProtectedRoute(
     var showLoginDialog by remember { mutableStateOf(false) }
     
     if (isLoggedIn) {
-        // 用户已登录，显示受保护的内容
+        // The user has logged in and protected content is displayed
         content()
     } else {
-        // 用户未登录，触发回调并显示对话框
+        // When the user is not logged in, a callback is triggered and a dialog box is displayed
         LaunchedEffect(Unit) {
             showLoginDialog = true
             onNotLoggedIn()
         }
     }
     
-    // 登录提醒对话框
+    // Login reminder dialog box
     if (showLoginDialog) {
         AlertDialog(
             onDismissRequest = { showLoginDialog = false },

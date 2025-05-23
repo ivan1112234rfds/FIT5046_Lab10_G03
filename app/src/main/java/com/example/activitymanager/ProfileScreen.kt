@@ -610,7 +610,7 @@ fun AvatarUploadField(label: String, onUploadClick: (Int) -> Unit) {
             onClick = { isAvatarDialogVisible = true },
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFF3F4F6),
-                contentColor = Color(0xFF3C4043) // 深灰色文字
+                contentColor = Color(0xFF3C4043)
             )
         ) {
             Text("Choose Avatar")
