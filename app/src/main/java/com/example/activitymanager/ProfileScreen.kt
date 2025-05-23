@@ -625,7 +625,7 @@ fun AvatarUploadField(label: String, onUploadClick: (Int) -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        // 第一个头像选项
+                        // 1st Avatar option
                         Image(
                             painter = painterResource(id = R.drawable.placeholder_avatar),
                             contentDescription = "Avatar 1",
@@ -639,7 +639,7 @@ fun AvatarUploadField(label: String, onUploadClick: (Int) -> Unit) {
                             contentScale = ContentScale.Crop
                         )
                         
-                        // 第二个头像选项
+                        // 2nd Avatar option
                         Image(
                             painter = painterResource(id = R.drawable.placeholder_avatar2),
                             contentDescription = "Avatar 2",
@@ -653,7 +653,7 @@ fun AvatarUploadField(label: String, onUploadClick: (Int) -> Unit) {
                             contentScale = ContentScale.Crop
                         )
                         
-                        // 第三个头像选项
+                        // 3rd Avatar option
                         Image(
                             painter = painterResource(id = R.drawable.placeholder_avatar3),
                             contentDescription = "Avatar 3",

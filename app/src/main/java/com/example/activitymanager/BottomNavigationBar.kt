@@ -61,7 +61,6 @@ fun BottomNavigationBar(
                 .padding(bottom = 12.dp),
             contentAlignment = Alignment.Center
         ) {
-            // 添加光晕效果
             if (selectedTab == "Search") {
                 Box(
                     modifier = Modifier

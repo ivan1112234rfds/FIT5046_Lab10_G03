@@ -102,7 +102,7 @@ fun RegisterScreen(navController: NavController) {
                 username = it
                 usernameError = null 
             },
-            label = { Text("Username") },
+            label = { Text("Username *") },
             modifier = Modifier.fillMaxWidth(),
             isError = usernameError != null,
             supportingText = {
@@ -124,7 +124,7 @@ fun RegisterScreen(navController: NavController) {
                 email = it
                 emailError = null 
             },
-            label = { Text("Email") },
+            label = { Text("Email *") },
             modifier = Modifier.fillMaxWidth(),
             isError = emailError != null,
             supportingText = {
@@ -146,7 +146,7 @@ fun RegisterScreen(navController: NavController) {
                 password = it
                 passwordError = null 
             },
-            label = { Text("Password") },
+            label = { Text("Password *") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {

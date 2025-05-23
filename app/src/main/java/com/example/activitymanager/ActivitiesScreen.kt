@@ -33,6 +33,12 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import com.example.activitymanager.firebase.FirebaseHelper
 import com.example.activitymanager.mapper.Activity
+import android.app.DatePickerDialog
+import java.util.Calendar
+import java.util.Date
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.*
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -56,7 +62,13 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
         (selectedCategory == "All" || it.type == selectedCategory)
     }
 
-    // 获取活动类型
+    var startDate by remember { mutableStateOf<Date?>(null) }
+    var endDate by remember { mutableStateOf<Date?>(null) }
+
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val calendar = Calendar.getInstance()
+
+    // get all activity types
     LaunchedEffect(Unit) {
         try {
             val types = firebaseHelper.getActivityTypes()
@@ -71,31 +83,32 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
     LaunchedEffect(Unit) {
         isLoading = true
         try {
-            // 1. 获取当前用户ID
+            // 1. get current user id
             val currentUser = firebaseHelper.getCurrentUser()
             val uid = currentUser?.uid
             
-            // 2. 如果用户已登录，获取用户偏好
+            // 2. get user preferences, if login
             if (uid != null) {
                 firebaseHelper.getUserPreferences(
                     uid = uid,
                     onSuccess = { preferences ->
                         userPreference = preferences.activityType
                     },
-                    onError = { /* 使用默认空字符串 */ }
+                    onError = {  }
                 )
             }
             
-            // 3. 获取所有活动
-            val fetchedActivities = firebaseHelper.getActivities()
+            // 3. get all activities
+            val fetchedActivities = firebaseHelper.getActivities(
+                startDate = startDate,
+                endDate = endDate
+            )
             
-            // 4. 根据用户偏好和日期对活动进行排序
+            // 4. sort with date and preferences
             activities = fetchedActivities.sortedWith(
-                compareBy<Activity> { 
-                    // 首先按照类型是否匹配用户偏好排序（不匹配的排后面）
+                compareBy<Activity> {
                     if (it.type == userPreference) 0 else 1 
-                }.thenBy { 
-                    // 然后按日期排序
+                }.thenBy {
                     it.date 
                 }
             )
@@ -141,6 +154,86 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
                     selected = selectedCategory,
                     onSelectedChange = { selectedCategory = it }
                 )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            val calendar = Calendar.getInstance()
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            var startDate by remember { mutableStateOf<Date?>(null) }
+            var endDate by remember { mutableStateOf<Date?>(null) }
+            val context = LocalContext.current
+            val coroutineScope = rememberCoroutineScope()
+
+            val buttonModifier = Modifier
+                .weight(1f)
+                .height(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF5A6DF9))
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+
+            val buttonTextStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(modifier = buttonModifier.clickable {
+                    DatePickerDialog(
+                        context,
+                        { _, year, month, dayOfMonth ->
+                            calendar.set(year, month, dayOfMonth, 0, 0, 0)
+                            startDate = calendar.time
+                        },
+                        calendar.get(Calendar.YEAR),
+                        calendar.get(Calendar.MONTH),
+                        calendar.get(Calendar.DAY_OF_MONTH)
+                    ).show()
+                }) {
+                    Text(
+                        text = startDate?.let { dateFormat.format(it) } ?: "Start Date",
+                        style = buttonTextStyle,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+
+                Box(modifier = buttonModifier.clickable {
+                    DatePickerDialog(
+                        context,
+                        { _, year, month, dayOfMonth ->
+                            calendar.set(year, month, dayOfMonth, 23, 59, 59)
+                            endDate = calendar.time
+                        },
+                        calendar.get(Calendar.YEAR),
+                        calendar.get(Calendar.MONTH),
+                        calendar.get(Calendar.DAY_OF_MONTH)
+                    ).show()
+                }) {
+                    Text(
+                        text = endDate?.let { dateFormat.format(it) } ?: "End Date",
+                        style = buttonTextStyle,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+
+                Box(
+                    modifier = buttonModifier.clickable {
+                        coroutineScope.launch {
+                            val currentUser = firebaseHelper.getCurrentUser()
+                            val uid = currentUser?.uid
+                            activities = firebaseHelper.getActivities(
+                                uid = uid,
+                                startDate = startDate,
+                                endDate = endDate
+                            )
+                        }
+                    },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Search", style = buttonTextStyle)
+                }
             }
 
             Spacer(Modifier.height(8.dp))
