@@ -29,6 +29,6 @@ git clone https://github.com/ivan1112234rfds/FIT5046_Lab10_G03.git
 # How to Use Temporary Navigation
 # In the current version, you can navigate to various feature pages as follows:
 
-1. After launching the app, you will enter the temporary HomeScreen
-2. On the HomeScreen, you will see buttons leading to each feature page
-3. Click the corresponding button to navigate to the target page
+1. After launching the app, you will enter the Home Screen.
+2. On the Home Screen, you will see buttons and navigation options leading to other pages.
+3. On the login page, you can register an account to access all features.
