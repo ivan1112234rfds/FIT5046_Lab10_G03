@@ -52,12 +52,13 @@ fun ActivityScreen(navController: NavController, onActivityClick: (String) -> Un
     var error by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableStateOf("Search") }
     
-    // 添加获取用户偏好的状态
+    // Add the status for obtaining user preferences
     var userPreference by remember { mutableStateOf("") }
-    // 添加活动类型列表状态
+
+    // Add the status of obtaining user preferences and the status of the list of activity types
     var activityTypes by remember { mutableStateOf<List<String>>(listOf("All", "Design", "Fitness", "Tech", "Hiking")) }
 
-    // 过滤活动
+    // Filtering activity
     val filteredActivities = activities.filter {
         (selectedCategory == "All" || it.type == selectedCategory)
     }
